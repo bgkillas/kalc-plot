@@ -9,9 +9,7 @@ authors = ["bgkillas <mswalhelm@gmail.com>"]
 [dependencies]
 egui="0.31.1"
 eframe="0.31.1"
-#rupl={path="rupl"}
-rupl="0.1.0"
+rupl={git="https://github.com/bgkillas/rupl"}
 rug="1.27.0"
 rayon="1.10.0"
-kalc-lib="1.4.3"
-#kalc-lib={path="kalc-lib"}
+kalc-lib={git="https://github.com/bgkillas/kalc-lib"}
