@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 egui="0.31.1"
 eframe="0.31.1"
-rupl={path=".."}
+rupl={path="rupl"}
 rug="1.27.0"
 rayon="1.10.0"
 kalc-lib={path="kalc-lib"}

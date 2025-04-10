@@ -1,0 +1,6 @@
+[submodule "kalc-lib"]
+	path = kalc-lib
+	url = https://github.com/bgkillas/kalc-lib
+[submodule "rupl"]
+	path = rupl
+	url = https://github.com/bgkillas/rupl
