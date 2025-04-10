@@ -2,11 +2,16 @@
 name = "kalc-plot"
 version = "0.1.0"
 edition = "2024"
+license = "GPL-3.0-only"
+description = "a complex graphing gui"
+authors = ["bgkillas <mswalhelm@gmail.com>"]
 
 [dependencies]
 egui="0.31.1"
 eframe="0.31.1"
-rupl={path="rupl"}
+#rupl={path="rupl"}
+rupl="0.1.0"
 rug="1.27.0"
 rayon="1.10.0"
-kalc-lib={path="kalc-lib"}
+kalc-lib="1.4.3"
+#kalc-lib={path="kalc-lib"}
