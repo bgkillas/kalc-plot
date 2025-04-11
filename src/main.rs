@@ -7,7 +7,7 @@ use kalc_lib::parse::simplify;
 use kalc_lib::units::{HowGraphing, Number, Options};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
-use rupl::types::{Complex, Graph, GraphType, UpdateResult};
+use rupl::types::{Complex, Graph, GraphType, Prec, UpdateResult};
 use std::env::args;
 use std::process::exit;
 fn main() {
@@ -74,7 +74,7 @@ impl App {
             options,
         };
         let (graph, complex) = if graphing_mode.y {
-            data.generate_3d(-2.0, -2.0, 2.0, 2.0, 64)
+            data.generate_3d(-2.0, -2.0, 2.0, 2.0, 64, 64)
         } else {
             data.generate_2d(-2.0, 2.0, 256)
         };
@@ -93,14 +93,24 @@ impl App {
     fn main(&mut self, ctx: &Context) {
         match self.plot.update(ctx) {
             UpdateResult::Width(s, e, p) => {
-                self.plot.clear_data();
-                let plot = self.data.generate_2d(s, e, (p * 256.0) as usize);
-                self.plot.set_complex(plot.1);
-                self.plot.set_data(vec![GraphType::Width(plot.0, s, e)]);
+                if let Prec::Mult(p) = p {
+                    self.plot.clear_data();
+                    let plot = self.data.generate_2d(s, e, (p * 256.0) as usize);
+                    self.plot.set_complex(plot.1);
+                    self.plot.set_data(vec![GraphType::Width(plot.0, s, e)]);
+                } else {
+                    unreachable!()
+                }
             }
             UpdateResult::Width3D(sx, sy, ex, ey, p) => {
                 self.plot.clear_data();
-                let plot = self.data.generate_3d(sx, sy, ex, ey, (p * 64.0) as usize);
+                let plot = match p {
+                    Prec::Mult(p) => {
+                        let l = (p * 64.0) as usize;
+                        self.data.generate_3d(sx, sy, ex, ey, l, l)
+                    }
+                    Prec::Dimension(x, y) => self.data.generate_3d(sx, sy, ex, ey, x, y),
+                };
                 self.plot.set_complex(plot.1);
                 self.plot
                     .set_data(vec![GraphType::Width3D(plot.0, sx, sy, ex, ey)]);
@@ -116,12 +126,12 @@ impl Data {
         starty: f64,
         endx: f64,
         endy: f64,
-        len: usize,
+        lenx: usize,
+        leny: usize,
     ) -> (Vec<Complex>, bool) {
-        let len = len.min(8192);
-        let dx = (endx - startx) / len as f64;
-        let dy = (endy - starty) / len as f64;
-        let data = (0..=len)
+        let dx = (endx - startx) / lenx as f64;
+        let dy = (endy - starty) / leny as f64;
+        let data = (0..=leny)
             .into_par_iter()
             .flat_map(|j| {
                 let y = starty + j as f64 * dy;
@@ -132,8 +142,8 @@ impl Data {
                 let mut modified = place_var(self.parsed.clone(), "y", y.clone());
                 let mut modifiedvars = place_funcvar(self.parsed_vars.clone(), "y", y.clone());
                 simplify(&mut modified, &mut modifiedvars, self.options);
-                let mut data = Vec::with_capacity(len + 1);
-                for i in 0..=len {
+                let mut data = Vec::with_capacity(lenx + 1);
+                for i in 0..=lenx {
                     let x = startx + i as f64 * dx;
                     let x = Num(Number::from(
                         rug::Complex::with_val(self.options.prec, x),
