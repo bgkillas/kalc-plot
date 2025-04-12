@@ -92,15 +92,11 @@ impl App {
     }
     fn main(&mut self, ctx: &Context) {
         match self.plot.update(ctx) {
-            UpdateResult::Width(s, e, p) => {
-                if let Prec::Mult(p) = p {
-                    self.plot.clear_data();
-                    let plot = self.data.generate_2d(s, e, (p * 256.0) as usize);
-                    self.plot.set_complex(plot.1);
-                    self.plot.set_data(vec![GraphType::Width(plot.0, s, e)]);
-                } else {
-                    unreachable!()
-                }
+            UpdateResult::Width(s, e, Prec::Mult(p)) => {
+                self.plot.clear_data();
+                let plot = self.data.generate_2d(s, e, (p * 256.0) as usize);
+                self.plot.set_complex(plot.1);
+                self.plot.set_data(vec![GraphType::Width(plot.0, s, e)]);
             }
             UpdateResult::Width3D(sx, sy, ex, ey, p) => {
                 self.plot.clear_data();
@@ -110,11 +106,17 @@ impl App {
                         self.data.generate_3d(sx, sy, ex, ey, l, l)
                     }
                     Prec::Dimension(x, y) => self.data.generate_3d(sx, sy, ex, ey, x, y),
+                    Prec::Slice(p, view_x, slice) => {
+                        let l = (p * 64.0) as usize;
+                        self.data
+                            .generate_3d_slice(sx, sy, ex, ey, l, l, slice, view_x)
+                    }
                 };
                 self.plot.set_complex(plot.1);
                 self.plot
                     .set_data(vec![GraphType::Width3D(plot.0, sx, sy, ex, ey)]);
             }
+            UpdateResult::Width(_, _, _) => unreachable!(),
             UpdateResult::None => {}
         }
     }
@@ -140,7 +142,7 @@ impl Data {
                     None,
                 ));
                 let mut modified = place_var(self.parsed.clone(), "y", y.clone());
-                let mut modifiedvars = place_funcvar(self.parsed_vars.clone(), "y", y.clone());
+                let mut modifiedvars = place_funcvar(self.parsed_vars.clone(), "y", y);
                 simplify(&mut modified, &mut modifiedvars, self.options);
                 let mut data = Vec::with_capacity(lenx + 1);
                 for i in 0..=lenx {
@@ -164,6 +166,79 @@ impl Data {
                 data
             })
             .collect::<Vec<Complex>>();
+        compact(data)
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn generate_3d_slice(
+        &self,
+        startx: f64,
+        starty: f64,
+        endx: f64,
+        endy: f64,
+        lenx: usize,
+        leny: usize,
+        slice: isize,
+        view_x: bool,
+    ) -> (Vec<Complex>, bool) {
+        let dx = (endx - startx) / lenx as f64;
+        let dy = (endy - starty) / leny as f64;
+        let data = if view_x {
+            let y = starty + slice as f64 * dy;
+            let y = Num(Number::from(
+                rug::Complex::with_val(self.options.prec, y),
+                None,
+            ));
+            let mut modified = place_var(self.parsed.clone(), "y", y.clone());
+            let mut modifiedvars = place_funcvar(self.parsed_vars.clone(), "y", y);
+            simplify(&mut modified, &mut modifiedvars, self.options);
+            (0..=lenx)
+                .into_par_iter()
+                .map(|i| {
+                    let x = startx + i as f64 * dx;
+                    let x = Num(Number::from(
+                        rug::Complex::with_val(self.options.prec, x),
+                        None,
+                    ));
+                    if let Ok(Num(n)) = do_math(
+                        place_var(modified.clone(), "x", x.clone()),
+                        self.options,
+                        place_funcvar(modifiedvars.clone(), "x", x),
+                    ) {
+                        Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
+                    } else {
+                        Complex::Complex(0.0, 0.0)
+                    }
+                })
+                .collect::<Vec<Complex>>()
+        } else {
+            let x = startx + slice as f64 * dx;
+            let x = Num(Number::from(
+                rug::Complex::with_val(self.options.prec, x),
+                None,
+            ));
+            let mut modified = place_var(self.parsed.clone(), "x", x.clone());
+            let mut modifiedvars = place_funcvar(self.parsed_vars.clone(), "x", x);
+            simplify(&mut modified, &mut modifiedvars, self.options);
+            (0..=leny)
+                .into_par_iter()
+                .map(|i| {
+                    let y = starty + i as f64 * dy;
+                    let y = Num(Number::from(
+                        rug::Complex::with_val(self.options.prec, y),
+                        None,
+                    ));
+                    if let Ok(Num(n)) = do_math(
+                        place_var(modified.clone(), "y", y.clone()),
+                        self.options,
+                        place_funcvar(modifiedvars.clone(), "y", y),
+                    ) {
+                        Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
+                    } else {
+                        Complex::Complex(0.0, 0.0)
+                    }
+                })
+                .collect::<Vec<Complex>>()
+        };
         compact(data)
     }
     fn generate_2d(&self, start: f64, end: f64, len: usize) -> (Vec<Complex>, bool) {
