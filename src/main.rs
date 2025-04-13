@@ -94,13 +94,14 @@ impl App {
         Self { plot, data }
     }
     fn main(&mut self, ctx: &Context) {
-        match self.plot.update(ctx) {
+        match self.plot.update(ctx, false) {
             UpdateResult::Width(s, e, Prec::Mult(p)) => {
                 self.plot.clear_data();
                 let plot = self.data.generate_2d(s, e, (p * 512.0) as usize);
                 self.data.is_complex |= plot.1;
                 self.plot.set_complex(self.data.is_complex);
                 self.plot.set_data(vec![GraphType::Width(plot.0, s, e)]);
+                self.plot.update(ctx, true);
             }
             UpdateResult::Width3D(sx, sy, ex, ey, p) => {
                 self.plot.clear_data();
@@ -120,6 +121,7 @@ impl App {
                 self.plot.set_complex(self.data.is_complex);
                 self.plot
                     .set_data(vec![GraphType::Width3D(plot.0, sx, sy, ex, ey)]);
+                self.plot.update(ctx, true);
             }
             UpdateResult::Width(_, _, _) => unreachable!(),
             UpdateResult::None => {}
