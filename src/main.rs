@@ -50,7 +50,6 @@ struct Data {
     parsed: Vec<NumStr>,
     parsed_vars: Vec<(String, Vec<NumStr>)>,
     options: Options,
-    is_complex: bool,
 }
 
 impl eframe::App for App {
@@ -69,19 +68,17 @@ impl App {
         if !graphing_mode.graph {
             exit(1)
         }
-        let mut data = Data {
+        let data = Data {
             parsed,
             parsed_vars,
             options,
-            is_complex: false,
         };
         let (graph, complex) = if graphing_mode.y {
             data.generate_3d(-2.0, -2.0, 2.0, 2.0, 64, 64)
         } else {
             data.generate_2d(-2.0, 2.0, 256)
         };
-        data.is_complex = complex;
-        let plot = Graph::new(
+        let mut plot = Graph::new(
             vec![if graphing_mode.y {
                 GraphType::Width3D(graph, -2.0, -2.0, 2.0, 2.0)
             } else {
@@ -91,21 +88,22 @@ impl App {
             -2.0,
             2.0,
         );
+        plot.is_complex = complex;
+        plot.mult = 1.0 / 16.0;
         Self { plot, data }
     }
     fn main(&mut self, ctx: &Context) {
         match self.plot.update(ctx, false) {
             UpdateResult::Width(s, e, Prec::Mult(p)) => {
                 self.plot.clear_data();
-                let plot = self.data.generate_2d(s, e, (p * 512.0) as usize);
-                self.data.is_complex |= plot.1;
-                self.plot.set_complex(self.data.is_complex);
-                self.plot.set_data(vec![GraphType::Width(plot.0, s, e)]);
+                let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
+                self.plot.is_complex |= complex;
+                self.plot.set_data(vec![GraphType::Width(plot, s, e)]);
                 self.plot.update(ctx, true);
             }
             UpdateResult::Width3D(sx, sy, ex, ey, p) => {
                 self.plot.clear_data();
-                let plot = match p {
+                let (plot, complex) = match p {
                     Prec::Mult(p) => {
                         let l = (p * 64.0) as usize;
                         self.data.generate_3d(sx, sy, ex, ey, l, l)
@@ -117,10 +115,9 @@ impl App {
                             .generate_3d_slice(sx, sy, ex, ey, l, l, slice, view_x)
                     }
                 };
-                self.data.is_complex |= plot.1;
-                self.plot.set_complex(self.data.is_complex);
+                self.plot.is_complex |= complex;
                 self.plot
-                    .set_data(vec![GraphType::Width3D(plot.0, sx, sy, ex, ey)]);
+                    .set_data(vec![GraphType::Width3D(plot, sx, sy, ex, ey)]);
                 self.plot.update(ctx, true);
             }
             UpdateResult::Width(_, _, _) => unreachable!(),
