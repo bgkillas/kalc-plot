@@ -208,7 +208,7 @@ impl Data {
         let dx = (endx - startx) / lenx as f64;
         let dy = (endy - starty) / leny as f64;
         let data = if view_x {
-            let y = starty + slice as f64 * dy;
+            let y = starty + (slice as f64 + leny as f64 / 2.0) * dy;
             let y = Num(Number::from(
                 rug::Complex::with_val(self.options.prec, y),
                 None,
@@ -242,7 +242,7 @@ impl Data {
                 })
                 .collect()
         } else {
-            let x = startx + slice as f64 * dx;
+            let x = startx + (slice as f64 + lenx as f64 / 2.0) * dx;
             let x = Num(Number::from(
                 rug::Complex::with_val(self.options.prec, x),
                 None,
