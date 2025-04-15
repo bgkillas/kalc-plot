@@ -1,10 +1,12 @@
 use egui::{Context, FontData, FontDefinitions, FontFamily};
 use kalc_lib::complex::NumStr;
 use kalc_lib::complex::NumStr::Num;
+use kalc_lib::load_vars::set_commands_or_vars;
 use kalc_lib::math::do_math;
 use kalc_lib::misc::{place_funcvar, place_var};
+use kalc_lib::options::silent_commands;
 use kalc_lib::parse::simplify;
-use kalc_lib::units::{HowGraphing, Number, Options};
+use kalc_lib::units::{Colors, HowGraphing, Number, Options};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rupl::types::{Complex, Graph, GraphType, Prec, UpdateResult};
@@ -64,11 +66,11 @@ impl eframe::App for App {
 
 impl App {
     fn new(function: String) -> Self {
-        let options = Options {
+        let mut options = Options {
             prec: 128,
             ..Options::default()
         };
-        let (data, graphing_mode) = init(&function, options);
+        let (data, graphing_mode) = init(&function, &mut options);
         if !graphing_mode.graph {
             exit(1)
         }
@@ -279,7 +281,6 @@ impl Data {
         compact(data)
     }
     fn generate_2d(&self, start: f64, end: f64, len: usize) -> (Vec<Vec<Complex>>, bool) {
-        let len = len.min(67108864);
         let dx = (end - start) / len as f64;
         let data = (0..self.data.len())
             .into_par_iter()
@@ -309,7 +310,37 @@ impl Data {
     }
 }
 #[allow(clippy::type_complexity)]
-fn init(function: &str, options: Options) -> (Vec<Plot>, HowGraphing) {
+fn init(function: &str, options: &mut Options) -> (Vec<Plot>, HowGraphing) {
+    let mut vars = Vec::new();
+    let mut function = function.to_string();
+    {
+        let mut split = function
+            .split(';')
+            .map(|a| a.to_string())
+            .collect::<Vec<String>>();
+        if split.len() != 1 {
+            function = split.pop().unwrap();
+            for s in split {
+                silent_commands(
+                    options,
+                    &s.chars()
+                        .filter(|&c| !c.is_whitespace())
+                        .collect::<Vec<char>>(),
+                );
+                if s.contains('=')
+                    && set_commands_or_vars(
+                        &mut Colors::default(),
+                        options,
+                        &mut vars,
+                        &s.chars().collect::<Vec<char>>(),
+                    )
+                    .is_err()
+                {
+                    exit(1)
+                }
+            }
+        }
+    }
     let data = function
         .split('#')
         .collect::<Vec<&str>>()
@@ -317,10 +348,10 @@ fn init(function: &str, options: Options) -> (Vec<Plot>, HowGraphing) {
         .map(|function| {
             let Ok((func, funcvar, how, _, _)) = kalc_lib::parse::input_var(
                 function,
-                &Vec::new(),
+                &vars,
                 &mut Vec::new(),
                 &mut 0,
-                options,
+                *options,
                 false,
                 0,
                 Vec::new(),
