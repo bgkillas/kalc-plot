@@ -46,9 +46,13 @@ struct App {
     data: Data,
 }
 
+struct Plot {
+    func: Vec<NumStr>,
+    funcvar: Vec<(String, Vec<NumStr>)>,
+}
+
 struct Data {
-    parsed: Vec<NumStr>,
-    parsed_vars: Vec<(String, Vec<NumStr>)>,
+    data: Vec<Plot>,
     options: Options,
 }
 
@@ -64,26 +68,28 @@ impl App {
             prec: 128,
             ..Options::default()
         };
-        let (parsed, parsed_vars, graphing_mode) = init(&function, options);
+        let (data, graphing_mode) = init(&function, options);
         if !graphing_mode.graph {
             exit(1)
         }
-        let data = Data {
-            parsed,
-            parsed_vars,
-            options,
-        };
+        let data = Data { data, options };
         let (graph, complex) = if graphing_mode.y {
             data.generate_3d(-2.0, -2.0, 2.0, 2.0, 64, 64)
         } else {
             data.generate_2d(-2.0, 2.0, 256)
         };
         let mut plot = Graph::new(
-            vec![if graphing_mode.y {
-                GraphType::Width3D(graph, -2.0, -2.0, 2.0, 2.0)
+            if graphing_mode.y {
+                graph
+                    .into_iter()
+                    .map(|graph| GraphType::Width3D(graph, -2.0, -2.0, 2.0, 2.0))
+                    .collect()
             } else {
-                GraphType::Width(graph, -2.0, 2.0)
-            }],
+                graph
+                    .into_iter()
+                    .map(|graph| GraphType::Width(graph, -2.0, 2.0))
+                    .collect()
+            },
             complex,
             -2.0,
             2.0,
@@ -98,7 +104,11 @@ impl App {
                 self.plot.clear_data();
                 let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
                 self.plot.is_complex |= complex;
-                self.plot.set_data(vec![GraphType::Width(plot, s, e)]);
+                self.plot.set_data(
+                    plot.into_iter()
+                        .map(|plot| GraphType::Width(plot, s, e))
+                        .collect(),
+                );
                 self.plot.update(ctx, true);
             }
             UpdateResult::Width3D(sx, sy, ex, ey, p) => {
@@ -116,8 +126,11 @@ impl App {
                     }
                 };
                 self.plot.is_complex |= complex;
-                self.plot
-                    .set_data(vec![GraphType::Width3D(plot, sx, sy, ex, ey)]);
+                self.plot.set_data(
+                    plot.into_iter()
+                        .map(|plot| GraphType::Width3D(plot, sx, sy, ex, ey))
+                        .collect(),
+                );
                 self.plot.update(ctx, true);
             }
             UpdateResult::Width(_, _, _) => unreachable!(),
@@ -134,42 +147,50 @@ impl Data {
         endy: f64,
         lenx: usize,
         leny: usize,
-    ) -> (Vec<Complex>, bool) {
+    ) -> (Vec<Vec<Complex>>, bool) {
         let dx = (endx - startx) / lenx as f64;
         let dy = (endy - starty) / leny as f64;
-        let data = (0..=leny)
+        let data = (0..self.data.len())
             .into_par_iter()
-            .flat_map(|j| {
-                let y = starty + j as f64 * dy;
-                let y = Num(Number::from(
-                    rug::Complex::with_val(self.options.prec, y),
-                    None,
-                ));
-                let mut modified = place_var(self.parsed.clone(), "y", y.clone());
-                let mut modifiedvars = place_funcvar(self.parsed_vars.clone(), "y", y);
-                simplify(&mut modified, &mut modifiedvars, self.options);
-                let mut data = Vec::with_capacity(lenx + 1);
-                for i in 0..=lenx {
-                    let x = startx + i as f64 * dx;
-                    let x = Num(Number::from(
-                        rug::Complex::with_val(self.options.prec, x),
-                        None,
-                    ));
-                    data.push(
-                        if let Ok(Num(n)) = do_math(
-                            place_var(modified.clone(), "x", x.clone()),
-                            self.options,
-                            place_funcvar(modifiedvars.clone(), "x", x),
-                        ) {
-                            Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
-                        } else {
-                            Complex::Complex(0.0, 0.0)
-                        },
-                    )
-                }
-                data
+            .map(|k| {
+                (0..=leny)
+                    .into_par_iter()
+                    .flat_map(|j| {
+                        let y = starty + j as f64 * dy;
+                        let y = Num(Number::from(
+                            rug::Complex::with_val(self.options.prec, y),
+                            None,
+                        ));
+                        let mut modified = place_var(self.data[k].func.clone(), "y", y.clone());
+                        let mut modifiedvars = place_funcvar(self.data[k].funcvar.clone(), "y", y);
+                        simplify(&mut modified, &mut modifiedvars, self.options);
+                        let mut data = Vec::with_capacity(lenx + 1);
+                        for i in 0..=lenx {
+                            let x = startx + i as f64 * dx;
+                            let x = Num(Number::from(
+                                rug::Complex::with_val(self.options.prec, x),
+                                None,
+                            ));
+                            data.push(
+                                if let Ok(Num(n)) = do_math(
+                                    place_var(modified.clone(), "x", x.clone()),
+                                    self.options,
+                                    place_funcvar(modifiedvars.clone(), "x", x),
+                                ) {
+                                    Complex::Complex(
+                                        n.number.real().to_f64(),
+                                        n.number.imag().to_f64(),
+                                    )
+                                } else {
+                                    Complex::Complex(0.0, 0.0)
+                                },
+                            )
+                        }
+                        data
+                    })
+                    .collect::<Vec<Complex>>()
             })
-            .collect::<Vec<Complex>>();
+            .collect::<Vec<Vec<Complex>>>();
         compact(data)
     }
     #[allow(clippy::too_many_arguments)]
@@ -183,7 +204,7 @@ impl Data {
         leny: usize,
         slice: isize,
         view_x: bool,
-    ) -> (Vec<Complex>, bool) {
+    ) -> (Vec<Vec<Complex>>, bool) {
         let dx = (endx - startx) / lenx as f64;
         let dy = (endy - starty) / leny as f64;
         let data = if view_x {
@@ -192,108 +213,136 @@ impl Data {
                 rug::Complex::with_val(self.options.prec, y),
                 None,
             ));
-            let mut modified = place_var(self.parsed.clone(), "y", y.clone());
-            let mut modifiedvars = place_funcvar(self.parsed_vars.clone(), "y", y);
-            simplify(&mut modified, &mut modifiedvars, self.options);
-            (0..=lenx)
+            (0..self.data.len())
                 .into_par_iter()
-                .map(|i| {
-                    let x = startx + i as f64 * dx;
-                    let x = Num(Number::from(
-                        rug::Complex::with_val(self.options.prec, x),
-                        None,
-                    ));
-                    if let Ok(Num(n)) = do_math(
-                        place_var(modified.clone(), "x", x.clone()),
-                        self.options,
-                        place_funcvar(modifiedvars.clone(), "x", x),
-                    ) {
-                        Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
-                    } else {
-                        Complex::Complex(0.0, 0.0)
-                    }
+                .map(|k| {
+                    let mut modified = place_var(self.data[k].func.clone(), "y", y.clone());
+                    let mut modifiedvars =
+                        place_funcvar(self.data[k].funcvar.clone(), "y", y.clone());
+                    simplify(&mut modified, &mut modifiedvars, self.options);
+                    (0..=lenx)
+                        .into_par_iter()
+                        .map(|i| {
+                            let x = startx + i as f64 * dx;
+                            let x = Num(Number::from(
+                                rug::Complex::with_val(self.options.prec, x),
+                                None,
+                            ));
+                            if let Ok(Num(n)) = do_math(
+                                place_var(modified.clone(), "x", x.clone()),
+                                self.options,
+                                place_funcvar(modifiedvars.clone(), "x", x),
+                            ) {
+                                Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
+                            } else {
+                                Complex::Complex(0.0, 0.0)
+                            }
+                        })
+                        .collect::<Vec<Complex>>()
                 })
-                .collect::<Vec<Complex>>()
+                .collect()
         } else {
             let x = startx + slice as f64 * dx;
             let x = Num(Number::from(
                 rug::Complex::with_val(self.options.prec, x),
                 None,
             ));
-            let mut modified = place_var(self.parsed.clone(), "x", x.clone());
-            let mut modifiedvars = place_funcvar(self.parsed_vars.clone(), "x", x);
-            simplify(&mut modified, &mut modifiedvars, self.options);
-            (0..=leny)
+            (0..self.data.len())
                 .into_par_iter()
-                .map(|i| {
-                    let y = starty + i as f64 * dy;
-                    let y = Num(Number::from(
-                        rug::Complex::with_val(self.options.prec, y),
-                        None,
-                    ));
-                    if let Ok(Num(n)) = do_math(
-                        place_var(modified.clone(), "y", y.clone()),
-                        self.options,
-                        place_funcvar(modifiedvars.clone(), "y", y),
-                    ) {
-                        Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
-                    } else {
-                        Complex::Complex(0.0, 0.0)
-                    }
+                .map(|k| {
+                    let mut modified = place_var(self.data[k].func.clone(), "x", x.clone());
+                    let mut modifiedvars =
+                        place_funcvar(self.data[k].funcvar.clone(), "x", x.clone());
+                    simplify(&mut modified, &mut modifiedvars, self.options);
+                    (0..=leny)
+                        .into_par_iter()
+                        .map(|i| {
+                            let y = starty + i as f64 * dy;
+                            let y = Num(Number::from(
+                                rug::Complex::with_val(self.options.prec, y),
+                                None,
+                            ));
+                            if let Ok(Num(n)) = do_math(
+                                place_var(modified.clone(), "y", y.clone()),
+                                self.options,
+                                place_funcvar(modifiedvars.clone(), "y", y),
+                            ) {
+                                Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
+                            } else {
+                                Complex::Complex(0.0, 0.0)
+                            }
+                        })
+                        .collect::<Vec<Complex>>()
                 })
-                .collect::<Vec<Complex>>()
+                .collect()
         };
         compact(data)
     }
-    fn generate_2d(&self, start: f64, end: f64, len: usize) -> (Vec<Complex>, bool) {
+    fn generate_2d(&self, start: f64, end: f64, len: usize) -> (Vec<Vec<Complex>>, bool) {
         let len = len.min(67108864);
         let dx = (end - start) / len as f64;
-        let data = (0..=len)
+        let data = (0..self.data.len())
             .into_par_iter()
-            .map(|i| {
-                let x = start + i as f64 * dx;
-                let x = Num(Number::from(
-                    rug::Complex::with_val(self.options.prec, x),
-                    None,
-                ));
-                if let Ok(Num(n)) = do_math(
-                    place_var(self.parsed.clone(), "x", x.clone()),
-                    self.options,
-                    place_funcvar(self.parsed_vars.clone(), "x", x),
-                ) {
-                    Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
-                } else {
-                    Complex::Complex(0.0, 0.0)
-                }
+            .map(|k| {
+                (0..=len)
+                    .into_par_iter()
+                    .map(|i| {
+                        let x = start + i as f64 * dx;
+                        let x = Num(Number::from(
+                            rug::Complex::with_val(self.options.prec, x),
+                            None,
+                        ));
+                        if let Ok(Num(n)) = do_math(
+                            place_var(self.data[k].func.clone(), "x", x.clone()),
+                            self.options,
+                            place_funcvar(self.data[k].funcvar.clone(), "x", x),
+                        ) {
+                            Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
+                        } else {
+                            Complex::Complex(0.0, 0.0)
+                        }
+                    })
+                    .collect::<Vec<Complex>>()
             })
-            .collect::<Vec<Complex>>();
+            .collect();
         compact(data)
     }
 }
 #[allow(clippy::type_complexity)]
-fn init(
-    function: &str,
-    options: Options,
-) -> (Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing) {
-    let Ok((func, funcvar, how, _, _)) = kalc_lib::parse::input_var(
-        function,
-        &Vec::new(),
-        &mut Vec::new(),
-        &mut 0,
-        options,
-        false,
-        0,
-        Vec::new(),
-        false,
-        &mut Vec::new(),
-        None,
-    ) else {
-        exit(1)
-    };
-    (func, funcvar, how)
+fn init(function: &str, options: Options) -> (Vec<Plot>, HowGraphing) {
+    let data = function
+        .split('#')
+        .collect::<Vec<&str>>()
+        .into_par_iter()
+        .map(|function| {
+            let Ok((func, funcvar, how, _, _)) = kalc_lib::parse::input_var(
+                function,
+                &Vec::new(),
+                &mut Vec::new(),
+                &mut 0,
+                options,
+                false,
+                0,
+                Vec::new(),
+                false,
+                &mut Vec::new(),
+                None,
+            ) else {
+                exit(1)
+            };
+            (func, funcvar, how)
+        })
+        .collect::<Vec<(Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing)>>();
+    let how = data[0].2;
+    (
+        data.into_iter()
+            .map(|(func, funcvar, _)| Plot { func, funcvar })
+            .collect(),
+        how,
+    )
 }
-fn compact(mut graph: Vec<Complex>) -> (Vec<Complex>, bool) {
-    let complex = graph.iter().any(|a| {
+fn compact(mut graph: Vec<Vec<Complex>>) -> (Vec<Vec<Complex>>, bool) {
+    let complex = graph.iter().flatten().any(|a| {
         if let Complex::Complex(_, i) = a {
             i != &0.0
         } else {
@@ -303,9 +352,13 @@ fn compact(mut graph: Vec<Complex>) -> (Vec<Complex>, bool) {
     if !complex {
         graph = graph
             .into_iter()
-            .map(|a| Complex::Real(a.to_options().0.unwrap()))
+            .map(|a| {
+                a.into_iter()
+                    .map(|a| Complex::Real(a.to_options().0.unwrap()))
+                    .collect()
+            })
             .collect()
-    } else if graph.iter().all(|a| {
+    } else if graph.iter().flatten().all(|a| {
         if let Complex::Complex(r, _) = a {
             r == &0.0
         } else {
@@ -314,7 +367,11 @@ fn compact(mut graph: Vec<Complex>) -> (Vec<Complex>, bool) {
     }) {
         graph = graph
             .into_iter()
-            .map(|a| Complex::Imag(a.to_options().1.unwrap()))
+            .map(|a| {
+                a.into_iter()
+                    .map(|a| Complex::Imag(a.to_options().1.unwrap()))
+                    .collect()
+            })
             .collect()
     }
     (graph, complex)
