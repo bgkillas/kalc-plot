@@ -1,7 +1,7 @@
 use egui::{Context, FontData, FontDefinitions, FontFamily};
 use kalc_lib::complex::NumStr;
 use kalc_lib::complex::NumStr::{Num, Vector};
-use kalc_lib::load_vars::set_commands_or_vars;
+use kalc_lib::load_vars::{get_vars, set_commands_or_vars};
 use kalc_lib::math::do_math;
 use kalc_lib::misc::{place_funcvar, place_var};
 use kalc_lib::options::silent_commands;
@@ -395,7 +395,7 @@ impl Data {
 }
 #[allow(clippy::type_complexity)]
 fn init(function: &str, options: &mut Options) -> (Vec<Plot>, HowGraphing) {
-    let mut vars = Vec::new();
+    let mut vars = get_vars(*options);
     let mut function = function.to_string();
     {
         let mut split = function
