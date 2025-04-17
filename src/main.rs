@@ -79,6 +79,7 @@ impl App {
         };
         let (data, graphing_mode) = init(&function, &mut options);
         if !graphing_mode.graph {
+            println!("no graph");
             exit(1)
         }
         let data = Data { data, options };
@@ -170,6 +171,7 @@ impl Data {
                                             n.number.imag().to_f64(),
                                         )
                                     } else {
+                                        println!("inconsistent data type 1");
                                         exit(1)
                                     },
                                 )
@@ -206,6 +208,7 @@ impl Data {
                                         place_funcvar(modifiedvars.clone(), "x", x),
                                     ) {
                                         if n.len() != 2 {
+                                            println!("inconsistent vector length 2");
                                             exit(1)
                                         }
                                         (
@@ -216,6 +219,7 @@ impl Data {
                                             ),
                                         )
                                     } else {
+                                        println!("data type 2");
                                         exit(1)
                                     },
                                 )
@@ -252,6 +256,7 @@ impl Data {
                                         place_funcvar(modifiedvars.clone(), "x", x),
                                     ) {
                                         if n.len() != 3 {
+                                            println!("inconsistent vector length 3");
                                             exit(1)
                                         }
                                         (
@@ -263,6 +268,7 @@ impl Data {
                                             ),
                                         )
                                     } else {
+                                        println!("data type 3");
                                         exit(1)
                                     },
                                 )
@@ -324,6 +330,7 @@ impl Data {
                                             n.number.imag().to_f64(),
                                         )
                                     } else {
+                                        println!("data type 4");
                                         exit(1)
                                     }
                                 })
@@ -368,6 +375,7 @@ impl Data {
                                             n.number.imag().to_f64(),
                                         )
                                     } else {
+                                        println!("data type 5");
                                         exit(1)
                                     }
                                 })
@@ -406,6 +414,7 @@ impl Data {
                             ) {
                                 Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
                             } else {
+                                println!("data type 6");
                                 exit(1)
                             }
                         })
@@ -428,6 +437,7 @@ impl Data {
                                 place_funcvar(data.funcvar.clone(), "x", x),
                             ) {
                                 if n.len() != 2 {
+                                    println!("inconsistent vector length 7");
                                     exit(1)
                                 }
                                 (
@@ -438,6 +448,7 @@ impl Data {
                                     ),
                                 )
                             } else {
+                                println!("data type 7");
                                 exit(1)
                             }
                         })
@@ -460,6 +471,7 @@ impl Data {
                                 place_funcvar(data.funcvar.clone(), "x", x),
                             ) {
                                 if n.len() != 3 {
+                                    println!("inconsistent vector length 8");
                                     exit(1)
                                 }
                                 (
@@ -471,6 +483,7 @@ impl Data {
                                     ),
                                 )
                             } else {
+                                println!("data type 8");
                                 exit(1)
                             }
                         })
@@ -502,16 +515,16 @@ fn init(function: &str, options: &mut Options) -> (Vec<Plot>, HowGraphing) {
                         .filter(|&c| !c.is_whitespace())
                         .collect::<Vec<char>>(),
                 );
-                if s.contains('=')
-                    && set_commands_or_vars(
+                if s.contains('=') {
+                    if let Err(s) = set_commands_or_vars(
                         &mut Colors::default(),
                         options,
                         &mut vars,
                         &s.chars().collect::<Vec<char>>(),
-                    )
-                    .is_err()
-                {
-                    exit(1)
+                    ) {
+                        println!("{s}");
+                        exit(1)
+                    }
                 }
             }
         }
@@ -521,7 +534,7 @@ fn init(function: &str, options: &mut Options) -> (Vec<Plot>, HowGraphing) {
         .collect::<Vec<&str>>()
         .into_par_iter()
         .map(|function| {
-            let Ok((func, funcvar, how, _, _)) = kalc_lib::parse::input_var(
+            match kalc_lib::parse::input_var(
                 function,
                 &vars,
                 &mut Vec::new(),
@@ -533,14 +546,18 @@ fn init(function: &str, options: &mut Options) -> (Vec<Plot>, HowGraphing) {
                 false,
                 &mut Vec::new(),
                 None,
-            ) else {
-                exit(1)
-            };
-            (func, funcvar, how)
+            ) {
+                Ok((func, funcvar, how, _, _)) => (func, funcvar, how),
+                Err(s) => {
+                    println!("{s}");
+                    exit(1)
+                }
+            }
         })
         .collect::<Vec<(Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing)>>();
     let how = data[0].2;
     if !how.graph {
+        println!("no graph 2");
         exit(1) //TODO
     }
     (
@@ -555,7 +572,14 @@ fn init(function: &str, options: &mut Options) -> (Vec<Plot>, HowGraphing) {
                     Ok(Num(_)) => Type::Num,
                     Ok(Vector(v)) if v.len() == 2 => Type::Vector,
                     Ok(Vector(v)) if v.len() == 3 => Type::Vector3D,
-                    _ => exit(1),
+                    Ok(_) => {
+                        println!("bad output");
+                        exit(1)
+                    }
+                    Err(s) => {
+                        println!("{s}");
+                        exit(1)
+                    }
                 };
                 Plot {
                     func,
