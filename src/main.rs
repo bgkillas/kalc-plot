@@ -1,4 +1,3 @@
-use egui::{Context, FontData, FontDefinitions, FontFamily};
 use kalc_lib::complex::NumStr;
 use kalc_lib::complex::NumStr::{Num, Vector};
 use kalc_lib::load_vars::{get_vars, set_commands_or_vars};
@@ -12,34 +11,44 @@ use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
 use rupl::types::{Complex, Graph, GraphType, Prec, UpdateResult};
 use std::env::args;
 use std::process::exit;
+use winit::event::WindowEvent;
+use winit::event_loop::ActiveEventLoop;
+use winit::window::WindowId;
 fn main() {
     if let Some(function) = args().next_back() {
-        eframe::run_native(
-            "eplot",
-            eframe::NativeOptions {
-                ..Default::default()
-            },
-            Box::new(|cc| {
-                let mut fonts = FontDefinitions::default();
-                fonts.font_data.insert(
-                    "notosans".to_owned(),
-                    std::sync::Arc::new(FontData::from_static(include_bytes!("../notosans.ttf"))),
-                );
-                fonts
-                    .families
-                    .get_mut(&FontFamily::Proportional)
-                    .unwrap()
-                    .insert(0, "notosans".to_owned());
-                fonts
-                    .families
-                    .get_mut(&FontFamily::Monospace)
-                    .unwrap()
-                    .insert(0, "notosans".to_owned());
-                cc.egui_ctx.set_fonts(fonts);
-                Ok(Box::new(App::new(function)))
-            }),
-        )
-        .unwrap();
+        #[cfg(feature = "egui")] {
+            eframe::run_native(
+                "eplot",
+                eframe::NativeOptions {
+                    ..Default::default()
+                },
+                Box::new(|cc| {
+                    let mut fonts = egui::FontDefinitions::default();
+                    fonts.font_data.insert(
+                        "notosans".to_owned(),
+                        std::sync::Arc::new(egui::FontData::from_static(include_bytes!("../notosans.ttf"))),
+                    );
+                    fonts
+                        .families
+                        .get_mut(&egui::FontFamily::Proportional)
+                        .unwrap()
+                        .insert(0, "notosans".to_owned());
+                    fonts
+                        .families
+                        .get_mut(&egui::FontFamily::Monospace)
+                        .unwrap()
+                        .insert(0, "notosans".to_owned());
+                    cc.egui_ctx.set_fonts(fonts);
+                    Ok(Box::new(App::new(function)))
+                }),
+            )
+                .unwrap();
+        }
+        #[cfg(feature = "skia")]{
+            let event_loop = winit::event_loop::EventLoop::new().unwrap();
+                let mut app = App::new(function);
+            event_loop.run_app(&mut app).unwrap()
+        }
     }
 }
 
@@ -65,9 +74,23 @@ struct Data {
     options: Options,
 }
 
+#[cfg(feature = "egui")]
 impl eframe::App for App {
-    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.main(ctx);
+    }
+}
+
+#[cfg(feature = "skia")]
+impl winit::application::ApplicationHandler for App {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        todo!()
+    }
+    fn suspended(&mut self, _: &ActiveEventLoop) {
+        self.surface_state = None
+    }
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
+        todo!()
     }
 }
 
@@ -93,8 +116,11 @@ impl App {
         plot.mult = 1.0 / 16.0;
         Self { plot, data }
     }
-    fn main(&mut self, ctx: &Context) {
-        match self.plot.update(ctx, false) {
+    #[cfg(feature = "egui")]
+    fn main(&mut self, ctx: &egui::Context) {
+        match {
+        self.plot.update(ctx, false)
+        } {
             UpdateResult::Width(s, e, Prec::Mult(p)) => {
                 self.plot.clear_data();
                 let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
@@ -119,6 +145,40 @@ impl App {
                 self.plot.is_complex |= complex;
                 self.plot.set_data(plot);
                 self.plot.update(ctx, true);
+            }
+            UpdateResult::Width(_, _, _) => unreachable!(),
+            UpdateResult::None => {}
+        }
+    }
+    #[cfg(feature = "skia")]
+    fn main(&mut self) {
+        match {
+        self.plot.update(false)
+        } {
+            UpdateResult::Width(s, e, Prec::Mult(p)) => {
+                self.plot.clear_data();
+                let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
+                self.plot.is_complex |= complex;
+                self.plot.set_data(plot);
+                self.plot.update(true);
+            }
+            UpdateResult::Width3D(sx, sy, ex, ey, p) => {
+                self.plot.clear_data();
+                let (plot, complex) = match p {
+                    Prec::Mult(p) => {
+                        let l = (p * 64.0) as usize;
+                        self.data.generate_3d(sx, sy, ex, ey, l, l)
+                    }
+                    Prec::Dimension(x, y) => self.data.generate_3d(sx, sy, ex, ey, x / 16, y / 16),
+                    Prec::Slice(p, view_x, slice) => {
+                        let l = (p * 512.0) as usize;
+                        self.data
+                            .generate_3d_slice(sx, sy, ex, ey, l, l, slice, view_x)
+                    }
+                };
+                self.plot.is_complex |= complex;
+                self.plot.set_data(plot);
+                self.plot.update(true);
             }
             UpdateResult::Width(_, _, _) => unreachable!(),
             UpdateResult::None => {}
