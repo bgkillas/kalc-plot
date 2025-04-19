@@ -8,14 +8,15 @@ authors = ["bgkillas <mswalhelm@gmail.com>"]
 
 [features]
 default=["skia"]
-egui=["dep:egui", "dep:eframe", "rupl/egui"]
-skia=["rupl/skia", "dep:winit"]
+egui=["dep:egui","dep:eframe","rupl/egui"]
+skia=["rupl/skia","dep:winit","dep:softbuffer"]
 
 [dependencies]
 egui={version="0.31.1",optional=true}
 eframe={version="0.31.1",optional=true}
 winit={version="0.30.9",optional=true}
+softbuffer={version="0.4.6",optional=true}
 rupl={path="../rupl",default-features = false}#git="https://github.com/bgkillas/rupl"}
 rug="1.27.0"
 rayon="1.10.0"
-kalc-lib={git="https://github.com/bgkillas/kalc-lib"}
+kalc-lib={path="../kalc-lib"}#git="https://github.com/bgkillas/kalc-lib"}

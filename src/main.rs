@@ -11,12 +11,10 @@ use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
 use rupl::types::{Complex, Graph, GraphType, Prec, UpdateResult};
 use std::env::args;
 use std::process::exit;
-use winit::event::WindowEvent;
-use winit::event_loop::ActiveEventLoop;
-use winit::window::WindowId;
 fn main() {
     if let Some(function) = args().next_back() {
-        #[cfg(feature = "egui")] {
+        #[cfg(feature = "egui")]
+        {
             eframe::run_native(
                 "eplot",
                 eframe::NativeOptions {
@@ -26,7 +24,9 @@ fn main() {
                     let mut fonts = egui::FontDefinitions::default();
                     fonts.font_data.insert(
                         "notosans".to_owned(),
-                        std::sync::Arc::new(egui::FontData::from_static(include_bytes!("../notosans.ttf"))),
+                        std::sync::Arc::new(egui::FontData::from_static(include_bytes!(
+                            "../notosans.ttf"
+                        ))),
                     );
                     fonts
                         .families
@@ -42,11 +42,12 @@ fn main() {
                     Ok(Box::new(App::new(function)))
                 }),
             )
-                .unwrap();
+            .unwrap();
         }
-        #[cfg(feature = "skia")]{
+        #[cfg(feature = "skia")]
+        {
             let event_loop = winit::event_loop::EventLoop::new().unwrap();
-                let mut app = App::new(function);
+            let mut app = App::new(function);
             event_loop.run_app(&mut app).unwrap()
         }
     }
@@ -55,6 +56,10 @@ fn main() {
 struct App {
     plot: Graph,
     data: Data,
+    #[cfg(feature = "skia")]
+    surface_state: Option<
+        softbuffer::Surface<std::rc::Rc<winit::window::Window>, std::rc::Rc<winit::window::Window>>,
+    >,
 }
 
 enum Type {
@@ -83,14 +88,48 @@ impl eframe::App for App {
 
 #[cfg(feature = "skia")]
 impl winit::application::ApplicationHandler for App {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        todo!()
+    fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        let window = {
+            let window = event_loop.create_window(winit::window::Window::default_attributes());
+            std::rc::Rc::new(window.unwrap())
+        };
+        let context = softbuffer::Context::new(window.clone()).unwrap();
+        self.surface_state = Some(softbuffer::Surface::new(&context, window.clone()).unwrap())
     }
-    fn suspended(&mut self, _: &ActiveEventLoop) {
+    fn window_event(
+        &mut self,
+        event_loop: &winit::event_loop::ActiveEventLoop,
+        window: winit::window::WindowId,
+        event: winit::event::WindowEvent,
+    ) {
+        match event {
+            winit::event::WindowEvent::RedrawRequested => {
+                let Some(state) = &mut self.surface_state else {
+                    return;
+                };
+                if state.window().id() != window {
+                    return;
+                }
+                let (width, height) = {
+                    let size = state.window().inner_size();
+                    (size.width, size.height)
+                };
+                state
+                    .resize(
+                        std::num::NonZeroU32::new(width).unwrap(),
+                        std::num::NonZeroU32::new(height).unwrap(),
+                    )
+                    .unwrap();
+                self.main(width,height)
+            }
+            winit::event::WindowEvent::CloseRequested => {
+                event_loop.exit();
+            }
+            _ => {}
+        }
+    }
+    fn suspended(&mut self, _: &winit::event_loop::ActiveEventLoop) {
         self.surface_state = None
-    }
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
-        todo!()
     }
 }
 
@@ -98,6 +137,7 @@ impl App {
     fn new(function: String) -> Self {
         let mut options = Options {
             prec: 128,
+            graphing: true,
             ..Options::default()
         };
         let (data, graphing_mode) = init(&function, &mut options);
@@ -114,13 +154,16 @@ impl App {
         let mut plot = Graph::new(graph, complex, -2.0, 2.0);
         plot.is_complex = complex;
         plot.mult = 1.0 / 16.0;
-        Self { plot, data }
+        Self {
+            plot,
+            data,
+            #[cfg(feature = "skia")]
+            surface_state: None,
+        }
     }
     #[cfg(feature = "egui")]
     fn main(&mut self, ctx: &egui::Context) {
-        match {
-        self.plot.update(ctx, false)
-        } {
+        match self.plot.update(ctx, false) {
             UpdateResult::Width(s, e, Prec::Mult(p)) => {
                 self.plot.clear_data();
                 let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
@@ -151,37 +194,40 @@ impl App {
         }
     }
     #[cfg(feature = "skia")]
-    fn main(&mut self) {
-        match {
-        self.plot.update(false)
-        } {
-            UpdateResult::Width(s, e, Prec::Mult(p)) => {
-                self.plot.clear_data();
-                let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
-                self.plot.is_complex |= complex;
-                self.plot.set_data(plot);
-                self.plot.update(true);
+    fn main(&mut self, width: u32, height: u32) {
+        if let Some(buffer) = &mut self.surface_state {
+            let mut buffer = buffer.buffer_mut().unwrap();
+            match self.plot.update(false, &mut buffer, width,height) {
+                UpdateResult::Width(s, e, Prec::Mult(p)) => {
+                    self.plot.clear_data();
+                    let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
+                    self.plot.is_complex |= complex;
+                    self.plot.set_data(plot);
+                    self.plot.update(true, &mut buffer, width,height);
+                }
+                UpdateResult::Width3D(sx, sy, ex, ey, p) => {
+                    self.plot.clear_data();
+                    let (plot, complex) = match p {
+                        Prec::Mult(p) => {
+                            let l = (p * 64.0) as usize;
+                            self.data.generate_3d(sx, sy, ex, ey, l, l)
+                        }
+                        Prec::Dimension(x, y) => {
+                            self.data.generate_3d(sx, sy, ex, ey, x / 16, y / 16)
+                        }
+                        Prec::Slice(p, view_x, slice) => {
+                            let l = (p * 512.0) as usize;
+                            self.data
+                                .generate_3d_slice(sx, sy, ex, ey, l, l, slice, view_x)
+                        }
+                    };
+                    self.plot.is_complex |= complex;
+                    self.plot.set_data(plot);
+                    self.plot.update(true, &mut buffer, width,height);
+                }
+                UpdateResult::Width(_, _, _) => unreachable!(),
+                UpdateResult::None => {}
             }
-            UpdateResult::Width3D(sx, sy, ex, ey, p) => {
-                self.plot.clear_data();
-                let (plot, complex) = match p {
-                    Prec::Mult(p) => {
-                        let l = (p * 64.0) as usize;
-                        self.data.generate_3d(sx, sy, ex, ey, l, l)
-                    }
-                    Prec::Dimension(x, y) => self.data.generate_3d(sx, sy, ex, ey, x / 16, y / 16),
-                    Prec::Slice(p, view_x, slice) => {
-                        let l = (p * 512.0) as usize;
-                        self.data
-                            .generate_3d_slice(sx, sy, ex, ey, l, l, slice, view_x)
-                    }
-                };
-                self.plot.is_complex |= complex;
-                self.plot.set_data(plot);
-                self.plot.update(true);
-            }
-            UpdateResult::Width(_, _, _) => unreachable!(),
-            UpdateResult::None => {}
         }
     }
 }
