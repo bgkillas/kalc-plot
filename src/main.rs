@@ -120,7 +120,7 @@ impl winit::application::ApplicationHandler for App {
                         std::num::NonZeroU32::new(height).unwrap(),
                     )
                     .unwrap();
-                self.main(width,height)
+                self.main(width, height)
             }
             winit::event::WindowEvent::CloseRequested => {
                 event_loop.exit();
@@ -197,13 +197,13 @@ impl App {
     fn main(&mut self, width: u32, height: u32) {
         if let Some(buffer) = &mut self.surface_state {
             let mut buffer = buffer.buffer_mut().unwrap();
-            match self.plot.update(false, &mut buffer, width,height) {
+            match self.plot.update(false, &mut buffer, width, height) {
                 UpdateResult::Width(s, e, Prec::Mult(p)) => {
                     self.plot.clear_data();
                     let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
                     self.plot.is_complex |= complex;
                     self.plot.set_data(plot);
-                    self.plot.update(true, &mut buffer, width,height);
+                    self.plot.update(true, &mut buffer, width, height);
                 }
                 UpdateResult::Width3D(sx, sy, ex, ey, p) => {
                     self.plot.clear_data();
@@ -223,7 +223,7 @@ impl App {
                     };
                     self.plot.is_complex |= complex;
                     self.plot.set_data(plot);
-                    self.plot.update(true, &mut buffer, width,height);
+                    self.plot.update(true, &mut buffer, width, height);
                 }
                 UpdateResult::Width(_, _, _) => unreachable!(),
                 UpdateResult::None => {}
