@@ -228,6 +228,7 @@ impl App {
                 UpdateResult::Width(_, _, _) => unreachable!(),
                 UpdateResult::None => {}
             }
+            buffer.present().unwrap();
         }
     }
 }
