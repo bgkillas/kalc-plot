@@ -60,6 +60,8 @@ struct App {
     surface_state: Option<
         softbuffer::Surface<std::rc::Rc<winit::window::Window>, std::rc::Rc<winit::window::Window>>,
     >,
+    #[cfg(feature = "skia")]
+    modifiers: rupl::types::Modifiers,
 }
 
 enum Type {
@@ -125,6 +127,25 @@ impl winit::application::ApplicationHandler for App {
             winit::event::WindowEvent::CloseRequested => {
                 event_loop.exit();
             }
+            winit::event::WindowEvent::KeyboardInput {
+                device_id: _,
+                event,
+                is_synthetic: _,
+            } => match event.logical_key {
+                winit::keyboard::Key::Named(winit::keyboard::NamedKey::Alt) => {
+                    self.modifiers.alt = event.state.is_pressed()
+                }
+                winit::keyboard::Key::Named(winit::keyboard::NamedKey::Control) => {
+                    self.modifiers.ctrl = event.state.is_pressed()
+                }
+                winit::keyboard::Key::Named(winit::keyboard::NamedKey::Shift) => {
+                    self.modifiers.shift = event.state.is_pressed()
+                }
+                winit::keyboard::Key::Named(winit::keyboard::NamedKey::Super) => {
+                    self.modifiers.command = event.state.is_pressed()
+                }
+                _ => {}
+            },
             _ => {}
         }
     }
@@ -159,51 +180,58 @@ impl App {
             data,
             #[cfg(feature = "skia")]
             surface_state: None,
+            #[cfg(feature = "skia")]
+            modifiers: rupl::types::Modifiers::default(),
         }
     }
     #[cfg(feature = "egui")]
     fn main(&mut self, ctx: &egui::Context) {
-        match self.plot.update(ctx, false) {
-            UpdateResult::Width(s, e, Prec::Mult(p)) => {
-                self.plot.clear_data();
-                let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
-                self.plot.is_complex |= complex;
-                self.plot.set_data(plot);
-                self.plot.update(ctx, true);
-            }
-            UpdateResult::Width3D(sx, sy, ex, ey, p) => {
-                self.plot.clear_data();
-                let (plot, complex) = match p {
-                    Prec::Mult(p) => {
-                        let l = (p * 64.0) as usize;
-                        self.data.generate_3d(sx, sy, ex, ey, l, l)
+        egui::CentralPanel::default()
+            .frame(egui::Frame::default().fill(egui::Color32::from_rgb(255, 255, 255)))
+            .show(ctx, |ui| {
+                self.plot.keybinds(ui);
+                match self.plot.update_res() {
+                    UpdateResult::Width(s, e, Prec::Mult(p)) => {
+                        self.plot.clear_data();
+                        let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
+                        self.plot.is_complex |= complex;
+                        self.plot.set_data(plot);
                     }
-                    Prec::Dimension(x, y) => self.data.generate_3d(sx, sy, ex, ey, x / 16, y / 16),
-                    Prec::Slice(p, view_x, slice) => {
-                        let l = (p * 512.0) as usize;
-                        self.data
-                            .generate_3d_slice(sx, sy, ex, ey, l, l, slice, view_x)
+                    UpdateResult::Width3D(sx, sy, ex, ey, p) => {
+                        self.plot.clear_data();
+                        let (plot, complex) = match p {
+                            Prec::Mult(p) => {
+                                let l = (p * 64.0) as usize;
+                                self.data.generate_3d(sx, sy, ex, ey, l, l)
+                            }
+                            Prec::Dimension(x, y) => {
+                                self.data.generate_3d(sx, sy, ex, ey, x / 16, y / 16)
+                            }
+                            Prec::Slice(p, view_x, slice) => {
+                                let l = (p * 512.0) as usize;
+                                self.data
+                                    .generate_3d_slice(sx, sy, ex, ey, l, l, slice, view_x)
+                            }
+                        };
+                        self.plot.is_complex |= complex;
+                        self.plot.set_data(plot);
                     }
-                };
-                self.plot.is_complex |= complex;
-                self.plot.set_data(plot);
-                self.plot.update(ctx, true);
-            }
-            UpdateResult::Width(_, _, _) => unreachable!(),
-            UpdateResult::None => {}
-        }
+                    UpdateResult::Width(_, _, _) => unreachable!(),
+                    UpdateResult::None => {}
+                }
+                self.plot.update(ctx, ui);
+            });
     }
     #[cfg(feature = "skia")]
     fn main(&mut self, width: u32, height: u32) {
         if let Some(buffer) = &mut self.surface_state {
             let mut buffer = buffer.buffer_mut().unwrap();
-            match self.plot.update(false, &mut buffer, width, height) {
+            match self.plot.update_res() {
                 UpdateResult::Width(s, e, Prec::Mult(p)) => {
                     self.plot.clear_data();
                     let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
                     self.plot.is_complex |= complex;
                     self.plot.set_data(plot);
-                    self.plot.update(true, &mut buffer, width, height);
                 }
                 UpdateResult::Width3D(sx, sy, ex, ey, p) => {
                     self.plot.clear_data();
@@ -223,11 +251,11 @@ impl App {
                     };
                     self.plot.is_complex |= complex;
                     self.plot.set_data(plot);
-                    self.plot.update(true, &mut buffer, width, height);
                 }
                 UpdateResult::Width(_, _, _) => unreachable!(),
                 UpdateResult::None => {}
             }
+            self.plot.update(width, height, &mut buffer);
             buffer.present().unwrap();
         }
     }
