@@ -147,7 +147,7 @@ impl winit::application::ApplicationHandler for App {
                     let ldist = self
                         .last_touch_positions
                         .iter()
-                        .map(|v| (&cpos - v).norm())
+                        .map(|v| (&lpos - v).norm())
                         .sum::<f64>();
                     let zoom_delta = if ldist != 0.0 { cdist / ldist } else { 0.0 };
                     let translation_delta = cpos - lpos;
@@ -158,6 +158,7 @@ impl winit::application::ApplicationHandler for App {
                 } else if self.touch_positions.len() == 1 {
                     self.input_state.pointer_down = true;
                     self.input_state.pointer_pos = Some(self.touch_positions[0]);
+                    self.input_state.pointer_just_down = self.last_touch_positions.is_empty();
                 }
                 self.main(width, height);
                 self.input_state.reset();
@@ -192,6 +193,9 @@ impl winit::application::ApplicationHandler for App {
                         self.input_state.pointer_just_down = true
                     }
                 }
+            }
+            winit::event::WindowEvent::CursorEntered { .. } => {
+                self.input_state.pointer_down = false;
             }
             winit::event::WindowEvent::CursorMoved { position, .. } => {
                 let Some(s) = &mut self.surface_state else {
@@ -274,7 +278,9 @@ impl winit::application::ApplicationHandler for App {
                     })
                 }
             }
-            winit::event::WindowEvent::Touch(winit::event::Touch { location, .. }) => {
+            winit::event::WindowEvent::Touch(winit::event::Touch {
+                location, phase, ..
+            }) => {
                 let Some(s) = &mut self.surface_state else {
                     return;
                 };
@@ -282,8 +288,13 @@ impl winit::application::ApplicationHandler for App {
                     return;
                 }
                 s.window().request_redraw();
-                self.touch_positions
-                    .push(rupl::types::Vec2::new(location.x, location.y))
+                if phase == winit::event::TouchPhase::Ended {
+                    self.input_state.pointer_down = false;
+                    self.input_state.pointer_pos = None;
+                } else {
+                    self.touch_positions
+                        .push(rupl::types::Vec2::new(location.x, location.y));
+                }
             }
             _ => {}
         }
