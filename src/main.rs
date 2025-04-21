@@ -66,6 +66,10 @@ struct App {
     input_state: rupl::types::InputState,
     #[cfg(feature = "skia")]
     name: String,
+    #[cfg(feature = "skia")]
+    touch_positions: Vec<rupl::types::Vec2>,
+    #[cfg(feature = "skia")]
+    last_touch_positions: Vec<rupl::types::Vec2>,
 }
 
 enum Type {
@@ -127,8 +131,37 @@ impl winit::application::ApplicationHandler for App {
                         std::num::NonZeroU32::new(height).unwrap(),
                     )
                     .unwrap();
+                if self.last_touch_positions.len() > 1
+                    && self.touch_positions.len() == self.last_touch_positions.len()
+                {
+                    fn avg(vec: &[rupl::types::Vec2]) -> rupl::types::Vec2 {
+                        vec.iter().cloned().sum::<rupl::types::Vec2>() / (vec.len() as f64)
+                    }
+                    let cpos = avg(&self.touch_positions);
+                    let lpos = avg(&self.last_touch_positions);
+                    let cdist = self
+                        .touch_positions
+                        .iter()
+                        .map(|v| (&cpos - v).norm())
+                        .sum::<f64>();
+                    let ldist = self
+                        .last_touch_positions
+                        .iter()
+                        .map(|v| (&cpos - v).norm())
+                        .sum::<f64>();
+                    let zoom_delta = if ldist != 0.0 { cdist / ldist } else { 0.0 };
+                    let translation_delta = cpos - lpos;
+                    self.input_state.multi = Some(rupl::types::Multi {
+                        translation_delta,
+                        zoom_delta,
+                    })
+                } else if self.touch_positions.len() == 1 {
+                    self.input_state.pointer_down = true;
+                    self.input_state.pointer_pos = Some(self.touch_positions[0]);
+                }
                 self.main(width, height);
                 self.input_state.reset();
+                self.last_touch_positions = self.touch_positions.drain(..).collect();
             }
             winit::event::WindowEvent::CloseRequested => {
                 event_loop.exit();
@@ -205,6 +238,13 @@ impl winit::application::ApplicationHandler for App {
                 self.modifiers.command = modifiers.state().super_key();
             }
             winit::event::WindowEvent::PanGesture { delta, .. } => {
+                let Some(s) = &mut self.surface_state else {
+                    return;
+                };
+                if s.window().id() != window {
+                    return;
+                }
+                s.window().request_redraw();
                 let translation_delta = rupl::types::Vec2::new(delta.x as f64, delta.y as f64);
                 if let Some(multi) = &mut self.input_state.multi {
                     multi.translation_delta = translation_delta
@@ -218,6 +258,13 @@ impl winit::application::ApplicationHandler for App {
             winit::event::WindowEvent::PinchGesture {
                 delta: zoom_delta, ..
             } => {
+                let Some(s) = &mut self.surface_state else {
+                    return;
+                };
+                if s.window().id() != window {
+                    return;
+                }
+                s.window().request_redraw();
                 if let Some(multi) = &mut self.input_state.multi {
                     multi.zoom_delta = zoom_delta
                 } else {
@@ -226,6 +273,17 @@ impl winit::application::ApplicationHandler for App {
                         translation_delta: rupl::types::Vec2::splat(0.0),
                     })
                 }
+            }
+            winit::event::WindowEvent::Touch(winit::event::Touch { location, .. }) => {
+                let Some(s) = &mut self.surface_state else {
+                    return;
+                };
+                if s.window().id() != window {
+                    return;
+                }
+                s.window().request_redraw();
+                self.touch_positions
+                    .push(rupl::types::Vec2::new(location.x, location.y))
             }
             _ => {}
         }
@@ -267,6 +325,10 @@ impl App {
             input_state: rupl::types::InputState::default(),
             #[cfg(feature = "skia")]
             name: function,
+            #[cfg(feature = "skia")]
+            touch_positions: Vec::new(),
+            #[cfg(feature = "skia")]
+            last_touch_positions: Vec::new(),
         }
     }
     #[cfg(feature = "egui")]
