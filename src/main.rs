@@ -288,12 +288,20 @@ impl winit::application::ApplicationHandler for App {
                     return;
                 }
                 s.window().request_redraw();
-                if phase == winit::event::TouchPhase::Ended {
-                    self.input_state.pointer_down = false;
-                    self.input_state.pointer_pos = None;
-                } else {
-                    self.touch_positions
-                        .push(rupl::types::Vec2::new(location.x, location.y));
+                match phase {
+                    winit::event::TouchPhase::Ended | winit::event::TouchPhase::Cancelled => {
+                        self.input_state.pointer_down = false;
+                        self.input_state.pointer_pos = None;
+                    }
+                    winit::event::TouchPhase::Moved => {
+                        self.touch_positions
+                            .push(rupl::types::Vec2::new(location.x, location.y));
+                    }
+                    winit::event::TouchPhase::Started => {
+                        self.last_touch_positions.clear();
+                        self.touch_positions
+                            .push(rupl::types::Vec2::new(location.x, location.y));
+                    }
                 }
             }
             _ => {}
