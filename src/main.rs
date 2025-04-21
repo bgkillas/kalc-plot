@@ -16,7 +16,7 @@ fn main() {
         #[cfg(feature = "egui")]
         {
             eframe::run_native(
-                "eplot",
+                &function.clone(),
                 eframe::NativeOptions {
                     ..Default::default()
                 },
@@ -64,6 +64,8 @@ struct App {
     modifiers: rupl::types::Modifiers,
     #[cfg(feature = "skia")]
     input_state: rupl::types::InputState,
+    #[cfg(feature = "skia")]
+    name: String,
 }
 
 enum Type {
@@ -97,6 +99,7 @@ impl winit::application::ApplicationHandler for App {
             let window = event_loop.create_window(winit::window::Window::default_attributes());
             std::rc::Rc::new(window.unwrap())
         };
+        window.set_title(&self.name);
         let context = softbuffer::Context::new(window.clone()).unwrap();
         self.surface_state = Some(softbuffer::Surface::new(&context, window.clone()).unwrap())
     }
@@ -262,6 +265,8 @@ impl App {
             modifiers: rupl::types::Modifiers::default(),
             #[cfg(feature = "skia")]
             input_state: rupl::types::InputState::default(),
+            #[cfg(feature = "skia")]
+            name: function,
         }
     }
     #[cfg(feature = "egui")]
@@ -270,35 +275,7 @@ impl App {
             .frame(egui::Frame::default().fill(egui::Color32::from_rgb(255, 255, 255)))
             .show(ctx, |ui| {
                 self.plot.keybinds(ui);
-                match self.plot.update_res() {
-                    UpdateResult::Width(s, e, Prec::Mult(p)) => {
-                        self.plot.clear_data();
-                        let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
-                        self.plot.is_complex |= complex;
-                        self.plot.set_data(plot);
-                    }
-                    UpdateResult::Width3D(sx, sy, ex, ey, p) => {
-                        self.plot.clear_data();
-                        let (plot, complex) = match p {
-                            Prec::Mult(p) => {
-                                let l = (p * 64.0) as usize;
-                                self.data.generate_3d(sx, sy, ex, ey, l, l)
-                            }
-                            Prec::Dimension(x, y) => {
-                                self.data.generate_3d(sx, sy, ex, ey, x / 16, y / 16)
-                            }
-                            Prec::Slice(p, view_x, slice) => {
-                                let l = (p * 512.0) as usize;
-                                self.data
-                                    .generate_3d_slice(sx, sy, ex, ey, l, l, slice, view_x)
-                            }
-                        };
-                        self.plot.is_complex |= complex;
-                        self.plot.set_data(plot);
-                    }
-                    UpdateResult::Width(_, _, _) => unreachable!(),
-                    UpdateResult::None => {}
-                }
+                self.data.update(&mut self.plot);
                 self.plot.update(ctx, ui);
             });
     }
@@ -307,41 +284,41 @@ impl App {
         if let Some(buffer) = &mut self.surface_state {
             let mut buffer = buffer.buffer_mut().unwrap();
             self.plot.keybinds(&self.input_state);
-            match self.plot.update_res() {
-                UpdateResult::Width(s, e, Prec::Mult(p)) => {
-                    self.plot.clear_data();
-                    let (plot, complex) = self.data.generate_2d(s, e, (p * 512.0) as usize);
-                    self.plot.is_complex |= complex;
-                    self.plot.set_data(plot);
-                }
-                UpdateResult::Width3D(sx, sy, ex, ey, p) => {
-                    self.plot.clear_data();
-                    let (plot, complex) = match p {
-                        Prec::Mult(p) => {
-                            let l = (p * 64.0) as usize;
-                            self.data.generate_3d(sx, sy, ex, ey, l, l)
-                        }
-                        Prec::Dimension(x, y) => {
-                            self.data.generate_3d(sx, sy, ex, ey, x / 16, y / 16)
-                        }
-                        Prec::Slice(p, view_x, slice) => {
-                            let l = (p * 512.0) as usize;
-                            self.data
-                                .generate_3d_slice(sx, sy, ex, ey, l, l, slice, view_x)
-                        }
-                    };
-                    self.plot.is_complex |= complex;
-                    self.plot.set_data(plot);
-                }
-                UpdateResult::Width(_, _, _) => unreachable!(),
-                UpdateResult::None => {}
-            }
+            self.data.update(&mut self.plot);
             self.plot.update(width, height, &mut buffer);
             buffer.present().unwrap();
         }
     }
 }
 impl Data {
+    fn update(&self, plot: &mut Graph) {
+        match plot.update_res() {
+            UpdateResult::Width(s, e, Prec::Mult(p)) => {
+                plot.clear_data();
+                let (data, complex) = self.generate_2d(s, e, (p * 512.0) as usize);
+                plot.is_complex |= complex;
+                plot.set_data(data);
+            }
+            UpdateResult::Width3D(sx, sy, ex, ey, p) => {
+                plot.clear_data();
+                let (data, complex) = match p {
+                    Prec::Mult(p) => {
+                        let l = (p * 64.0) as usize;
+                        self.generate_3d(sx, sy, ex, ey, l, l)
+                    }
+                    Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x / 16, y / 16),
+                    Prec::Slice(p, view_x, slice) => {
+                        let l = (p * 512.0) as usize;
+                        self.generate_3d_slice(sx, sy, ex, ey, l, l, slice, view_x)
+                    }
+                };
+                plot.is_complex |= complex;
+                plot.set_data(data);
+            }
+            UpdateResult::Width(_, _, _) => unreachable!(),
+            UpdateResult::None => {}
+        }
+    }
     fn generate_3d(
         &self,
         startx: f64,
