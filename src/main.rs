@@ -169,9 +169,7 @@ impl winit::application::ApplicationHandler for App {
                 }
                 self.input_state.pointer_pos = Some(rupl::types::Vec2::new(position.x, position.y));
             }
-            winit::event::WindowEvent::MouseWheel {
-                delta, phase: _, ..
-            } => {
+            winit::event::WindowEvent::MouseWheel { delta, .. } => {
                 let Some(s) = &mut self.surface_state else {
                     return;
                 };
@@ -181,7 +179,7 @@ impl winit::application::ApplicationHandler for App {
                 s.window().request_redraw();
                 self.input_state.raw_scroll_delta = match delta {
                     winit::event::MouseScrollDelta::LineDelta(x, y) => {
-                        rupl::types::Vec2::new(x as f64, y as f64)
+                        rupl::types::Vec2::new(x as f64 * 128.0, y as f64 * 128.0)
                     }
                     winit::event::MouseScrollDelta::PixelDelta(p) => {
                         rupl::types::Vec2::new(p.x, p.y)
@@ -203,8 +201,29 @@ impl winit::application::ApplicationHandler for App {
                 self.modifiers.shift = modifiers.state().shift_key();
                 self.modifiers.command = modifiers.state().super_key();
             }
-            //winit::event::WindowEvent::PanGesture { delta, phase, .. } => {}
-            //winit::event::WindowEvent::PinchGesture { delta, phase, .. } => {}
+            winit::event::WindowEvent::PanGesture { delta, .. } => {
+                let translation_delta = rupl::types::Vec2::new(delta.x as f64, delta.y as f64);
+                if let Some(multi) = &mut self.input_state.multi {
+                    multi.translation_delta = translation_delta
+                } else {
+                    self.input_state.multi = Some(rupl::types::Multi {
+                        zoom_delta: 0.0,
+                        translation_delta,
+                    })
+                }
+            }
+            winit::event::WindowEvent::PinchGesture {
+                delta: zoom_delta, ..
+            } => {
+                if let Some(multi) = &mut self.input_state.multi {
+                    multi.zoom_delta = zoom_delta
+                } else {
+                    self.input_state.multi = Some(rupl::types::Multi {
+                        zoom_delta,
+                        translation_delta: rupl::types::Vec2::splat(0.0),
+                    })
+                }
+            }
             _ => {}
         }
     }
