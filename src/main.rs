@@ -62,6 +62,8 @@ struct App {
     >,
     #[cfg(feature = "skia")]
     modifiers: rupl::types::Modifiers,
+    #[cfg(feature = "skia")]
+    input_state: rupl::types::InputState,
 }
 
 enum Type {
@@ -122,30 +124,87 @@ impl winit::application::ApplicationHandler for App {
                         std::num::NonZeroU32::new(height).unwrap(),
                     )
                     .unwrap();
-                self.main(width, height)
+                self.main(width, height);
+                self.input_state.reset();
             }
             winit::event::WindowEvent::CloseRequested => {
                 event_loop.exit();
             }
-            winit::event::WindowEvent::KeyboardInput {
-                device_id: _,
-                event,
-                is_synthetic: _,
-            } => match event.logical_key {
-                winit::keyboard::Key::Named(winit::keyboard::NamedKey::Alt) => {
-                    self.modifiers.alt = event.state.is_pressed()
+            winit::event::WindowEvent::KeyboardInput { event, .. } => {
+                if event.state.is_pressed() {
+                    let Some(state) = &mut self.surface_state else {
+                        return;
+                    };
+                    if state.window().id() != window {
+                        return;
+                    }
+                    state.window().request_redraw();
+                    self.input_state.keys_pressed.push(event.logical_key.into());
                 }
-                winit::keyboard::Key::Named(winit::keyboard::NamedKey::Control) => {
-                    self.modifiers.ctrl = event.state.is_pressed()
+            }
+            winit::event::WindowEvent::MouseInput { state, button, .. } => {
+                if button == winit::event::MouseButton::Left {
+                    let Some(s) = &mut self.surface_state else {
+                        return;
+                    };
+                    if s.window().id() != window {
+                        return;
+                    }
+                    s.window().request_redraw();
+                    self.input_state.pointer_down = state.is_pressed();
+                    if state.is_pressed() {
+                        self.input_state.pointer_just_down = true
+                    }
                 }
-                winit::keyboard::Key::Named(winit::keyboard::NamedKey::Shift) => {
-                    self.modifiers.shift = event.state.is_pressed()
+            }
+            winit::event::WindowEvent::CursorMoved { position, .. } => {
+                let Some(s) = &mut self.surface_state else {
+                    return;
+                };
+                if s.window().id() != window {
+                    return;
                 }
-                winit::keyboard::Key::Named(winit::keyboard::NamedKey::Super) => {
-                    self.modifiers.command = event.state.is_pressed()
+                if self.input_state.pointer_down {
+                    s.window().request_redraw();
                 }
-                _ => {}
-            },
+                self.input_state.pointer_pos = Some(rupl::types::Vec2::new(position.x, position.y));
+            }
+            winit::event::WindowEvent::MouseWheel {
+                delta, phase: _, ..
+            } => {
+                let Some(s) = &mut self.surface_state else {
+                    return;
+                };
+                if s.window().id() != window {
+                    return;
+                }
+                s.window().request_redraw();
+                self.input_state.raw_scroll_delta = match delta {
+                    winit::event::MouseScrollDelta::LineDelta(x, y) => {
+                        rupl::types::Vec2::new(x as f64, y as f64)
+                    }
+                    winit::event::MouseScrollDelta::PixelDelta(p) => {
+                        rupl::types::Vec2::new(p.x, p.y)
+                    }
+                };
+            }
+            winit::event::WindowEvent::ModifiersChanged(modifiers) => {
+                let Some(s) = &mut self.surface_state else {
+                    return;
+                };
+                if s.window().id() != window {
+                    return;
+                }
+                if !self.input_state.keys_pressed.is_empty() {
+                    s.window().request_redraw();
+                }
+                self.modifiers.alt = modifiers.state().alt_key();
+                self.modifiers.ctrl = modifiers.state().control_key();
+                self.modifiers.shift = modifiers.state().shift_key();
+                self.modifiers.command = modifiers.state().super_key();
+            }
+            //winit::event::WindowEvent::PanGesture { delta, phase, .. } => {}
+            //winit::event::WindowEvent::PinchGesture { delta, phase, .. } => {}
             _ => {}
         }
     }
@@ -182,6 +241,8 @@ impl App {
             surface_state: None,
             #[cfg(feature = "skia")]
             modifiers: rupl::types::Modifiers::default(),
+            #[cfg(feature = "skia")]
+            input_state: rupl::types::InputState::default(),
         }
     }
     #[cfg(feature = "egui")]
@@ -226,6 +287,7 @@ impl App {
     fn main(&mut self, width: u32, height: u32) {
         if let Some(buffer) = &mut self.surface_state {
             let mut buffer = buffer.buffer_mut().unwrap();
+            self.plot.keybinds(&self.input_state);
             match self.plot.update_res() {
                 UpdateResult::Width(s, e, Prec::Mult(p)) => {
                     self.plot.clear_data();
