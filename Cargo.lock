@@ -2721,7 +2721,6 @@ dependencies = [
  "eyre",
  "rayon",
  "skia-safe",
- "softbuffer",
  "winit",
 ]
 

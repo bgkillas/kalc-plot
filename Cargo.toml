@@ -9,7 +9,7 @@ authors = ["bgkillas <mswalhelm@gmail.com>"]
 [features]
 default=["skia"]
 egui=["dep:egui","dep:eframe","rupl/egui"]
-skia=["rupl/skia","dep:winit","dep:softbuffer"]
+skia=["rupl/skia" ,"rupl/winit", "dep:winit", "dep:softbuffer"]
 
 [dependencies]
 egui={version="0.31.1",optional=true}
