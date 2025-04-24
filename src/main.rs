@@ -61,8 +61,6 @@ struct App {
         softbuffer::Surface<std::rc::Rc<winit::window::Window>, std::rc::Rc<winit::window::Window>>,
     >,
     #[cfg(feature = "skia")]
-    modifiers: rupl::types::Modifiers,
-    #[cfg(feature = "skia")]
     input_state: rupl::types::InputState,
     #[cfg(feature = "skia")]
     name: String,
@@ -236,10 +234,10 @@ impl winit::application::ApplicationHandler for App {
                 if !self.input_state.keys_pressed.is_empty() {
                     s.window().request_redraw();
                 }
-                self.modifiers.alt = modifiers.state().alt_key();
-                self.modifiers.ctrl = modifiers.state().control_key();
-                self.modifiers.shift = modifiers.state().shift_key();
-                self.modifiers.command = modifiers.state().super_key();
+                self.input_state.modifiers.alt = modifiers.state().alt_key();
+                self.input_state.modifiers.ctrl = modifiers.state().control_key();
+                self.input_state.modifiers.shift = modifiers.state().shift_key();
+                self.input_state.modifiers.command = modifiers.state().super_key();
             }
             winit::event::WindowEvent::PanGesture { delta, .. } => {
                 let Some(s) = &mut self.surface_state else {
@@ -338,8 +336,6 @@ impl App {
             data,
             #[cfg(feature = "skia")]
             surface_state: None,
-            #[cfg(feature = "skia")]
-            modifiers: rupl::types::Modifiers::default(),
             #[cfg(feature = "skia")]
             input_state: rupl::types::InputState::default(),
             #[cfg(feature = "skia")]
