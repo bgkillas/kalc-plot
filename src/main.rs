@@ -205,7 +205,10 @@ impl winit::application::ApplicationHandler for App {
                 if s.window().id() != window {
                     return;
                 }
-                if self.input_state.pointer_down {
+                if self.input_state.pointer_down
+                    || (!self.plot.is_3d
+                        && (!self.plot.disable_coord || self.plot.ruler_pos.is_some()))
+                {
                     s.window().request_redraw();
                 }
                 self.input_state.pointer_pos = Some(rupl::types::Vec2::new(position.x, position.y));
