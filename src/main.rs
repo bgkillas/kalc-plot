@@ -138,6 +138,7 @@ impl winit::application::ApplicationHandler for App {
                         vec.clone().copied().sum::<rupl::types::Vec2>() / (vec.len() as f64)
                     }
                     let cpos = avg(&self.touch_positions.values());
+                    self.input_state.pointer_pos = Some(cpos);
                     let lpos = avg(&self.last_touch_positions.values());
                     let cdist = self
                         .touch_positions
