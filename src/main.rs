@@ -65,9 +65,9 @@ struct App {
     #[cfg(feature = "skia")]
     name: String,
     #[cfg(feature = "skia")]
-    touch_positions: Vec<rupl::types::Vec2>,
+    touch_positions: std::collections::HashMap<u64, rupl::types::Vec2>,
     #[cfg(feature = "skia")]
-    last_touch_positions: Vec<rupl::types::Vec2>,
+    last_touch_positions: std::collections::HashMap<u64, rupl::types::Vec2>,
 }
 
 enum Type {
@@ -129,22 +129,24 @@ impl winit::application::ApplicationHandler for App {
                         std::num::NonZeroU32::new(height).unwrap(),
                     )
                     .unwrap();
-                if self.last_touch_positions.len() > 1
+                if self.touch_positions.len() > 1
                     && self.touch_positions.len() == self.last_touch_positions.len()
                 {
-                    fn avg(vec: &[rupl::types::Vec2]) -> rupl::types::Vec2 {
-                        vec.iter().cloned().sum::<rupl::types::Vec2>() / (vec.len() as f64)
+                    fn avg(
+                        vec: &std::collections::hash_map::Values<u64, rupl::types::Vec2>,
+                    ) -> rupl::types::Vec2 {
+                        vec.clone().copied().sum::<rupl::types::Vec2>() / (vec.len() as f64)
                     }
-                    let cpos = avg(&self.touch_positions);
-                    let lpos = avg(&self.last_touch_positions);
+                    let cpos = avg(&self.touch_positions.values());
+                    let lpos = avg(&self.last_touch_positions.values());
                     let cdist = self
                         .touch_positions
-                        .iter()
+                        .values()
                         .map(|v| (&cpos - v).norm())
                         .sum::<f64>();
                     let ldist = self
                         .last_touch_positions
-                        .iter()
+                        .values()
                         .map(|v| (&lpos - v).norm())
                         .sum::<f64>();
                     let zoom_delta = if ldist != 0.0 { cdist / ldist } else { 0.0 };
@@ -155,12 +157,12 @@ impl winit::application::ApplicationHandler for App {
                     })
                 } else if self.touch_positions.len() == 1 {
                     self.input_state.pointer_down = true;
-                    self.input_state.pointer_pos = Some(self.touch_positions[0]);
+                    self.input_state.pointer_pos = self.touch_positions.values().next().copied();
                     self.input_state.pointer_just_down = self.last_touch_positions.is_empty();
                 }
                 self.main(width, height);
                 self.input_state.reset();
-                self.last_touch_positions = self.touch_positions.drain(..).collect();
+                self.last_touch_positions = self.touch_positions.clone();
             }
             winit::event::WindowEvent::CloseRequested => {
                 event_loop.exit();
@@ -277,7 +279,10 @@ impl winit::application::ApplicationHandler for App {
                 }
             }
             winit::event::WindowEvent::Touch(winit::event::Touch {
-                location, phase, ..
+                location,
+                phase,
+                id,
+                ..
             }) => {
                 let Some(s) = &mut self.surface_state else {
                     return;
@@ -293,12 +298,12 @@ impl winit::application::ApplicationHandler for App {
                     }
                     winit::event::TouchPhase::Moved => {
                         self.touch_positions
-                            .push(rupl::types::Vec2::new(location.x, location.y));
+                            .insert(id, rupl::types::Vec2::new(location.x, location.y));
                     }
                     winit::event::TouchPhase::Started => {
                         self.last_touch_positions.clear();
                         self.touch_positions
-                            .push(rupl::types::Vec2::new(location.x, location.y));
+                            .insert(id, rupl::types::Vec2::new(location.x, location.y));
                     }
                 }
             }
@@ -341,9 +346,9 @@ impl App {
             #[cfg(feature = "skia")]
             name: function,
             #[cfg(feature = "skia")]
-            touch_positions: Vec::new(),
+            touch_positions: Default::default(),
             #[cfg(feature = "skia")]
-            last_touch_positions: Vec::new(),
+            last_touch_positions: Default::default(),
         }
     }
     #[cfg(feature = "egui")]
