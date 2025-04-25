@@ -17,10 +17,13 @@ fn main() {
     if let Some(function) = args.last() {
         let data = if args.len() > 2 && args[1] == "-d" {
             let stdin = std::io::stdin().lock();
-            serde_json::from_reader::<StdinLock, kalc_lib::units::Data>(stdin).unwrap()
+            let mut data = serde_json::from_reader::<StdinLock, kalc_lib::units::Data>(stdin).unwrap();
+            data.options.prec = data.options.graph_prec;
+            data
         } else {
             let options = Options {
                 prec: 128,
+                graph_prec: 128,
                 graphing: true,
                 ..Options::default()
             };
