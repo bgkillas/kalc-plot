@@ -8,7 +8,7 @@ use kalc_lib::parse::simplify;
 use kalc_lib::units::{Colors, HowGraphing, Number, Options, Variable};
 use rayon::iter::ParallelIterator;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
-use rupl::types::{Complex, Graph, GraphType, Prec, UpdateResult};
+use rupl::types::{Complex, Graph, GraphType, Name, Prec, Show, UpdateResult};
 use std::env::args;
 use std::io::StdinLock;
 use std::process::exit;
@@ -17,7 +17,8 @@ fn main() {
     if let Some(function) = args.last() {
         let data = if args.len() > 2 && args[1] == "-d" {
             let stdin = std::io::stdin().lock();
-            let mut data = serde_json::from_reader::<StdinLock, kalc_lib::units::Data>(stdin).unwrap();
+            let mut data =
+                serde_json::from_reader::<StdinLock, kalc_lib::units::Data>(stdin).unwrap();
             data.options.prec = data.options.graph_prec;
             data
         } else {
@@ -341,7 +342,7 @@ impl winit::application::ApplicationHandler for App {
 impl App {
     fn new(function: String, data: kalc_lib::units::Data) -> Self {
         let kalc_lib::units::Data { mut options, vars } = data;
-        let (data, graphing_mode) = init(&function, &mut options, vars);
+        let (data, names, graphing_mode) = init(&function, &mut options, vars);
         if !graphing_mode.graph {
             println!("no graph");
             exit(1)
@@ -352,7 +353,49 @@ impl App {
         } else {
             data.generate_2d(-2.0, 2.0, 256)
         };
-        let mut plot = Graph::new(graph, complex, -2.0, 2.0);
+        let names = names
+            .into_iter()
+            .zip(graph.iter())
+            .map(|(name, data)| {
+                let (real, imag) = match data {
+                    GraphType::Width(data, _, _) => (
+                        data.iter()
+                            .any(|a| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
+                        data.iter()
+                            .any(|a| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
+                    ),
+                    GraphType::Coord(data) => (
+                        data.iter()
+                            .any(|(_, a)| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
+                        data.iter()
+                            .any(|(_, a)| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
+                    ),
+                    GraphType::Width3D(data, _, _, _, _) => (
+                        data.iter()
+                            .any(|a| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
+                        data.iter()
+                            .any(|a| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
+                    ),
+                    GraphType::Coord3D(data) => (
+                        data.iter().any(|(_, _, a)| {
+                            matches!(a, Complex::Real(_) | Complex::Complex(_, _))
+                        }),
+                        data.iter().any(|(_, _, a)| {
+                            matches!(a, Complex::Imag(_) | Complex::Complex(_, _))
+                        }),
+                    ),
+                };
+                let show = if real && imag {
+                    Show::Complex
+                } else if imag {
+                    Show::Imag
+                } else {
+                    Show::Real
+                };
+                Name { name, show }
+            })
+            .collect();
+        let mut plot = Graph::new(graph, names, complex, -2.0, 2.0);
         plot.is_complex = complex;
         plot.mult = 1.0 / 16.0;
         Self {
@@ -796,7 +839,7 @@ fn init(
     function: &str,
     options: &mut Options,
     mut vars: Vec<Variable>,
-) -> (Vec<Plot>, HowGraphing) {
+) -> (Vec<Plot>, Vec<String>, HowGraphing) {
     let mut function = function.to_string();
     {
         let mut split = function
@@ -844,49 +887,51 @@ fn init(
                 &mut Vec::new(),
                 None,
             ) {
-                Ok((func, funcvar, how, _, _)) => (func, funcvar, how),
+                Ok((func, funcvar, how, _, _)) => (function.to_string(), func, funcvar, how),
                 Err(s) => {
                     println!("{s}");
                     exit(1)
                 }
             }
         })
-        .collect::<Vec<(Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing)>>();
-    let how = data[0].2;
+        .collect::<Vec<(String, Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing)>>();
+    let how = data[0].3;
     if !how.graph {
         println!("no graph 2");
         exit(1) //TODO
     }
-    (
-        data.into_iter()
-            .map(|(func, funcvar, _)| {
-                let x = Num(Number::from(rug::Complex::new(options.prec), None));
-                let graph_type = match do_math(
-                    place_var(place_var(func.clone(), "x", x.clone()), "y", x.clone()),
-                    *options,
-                    place_funcvar(place_funcvar(funcvar.clone(), "x", x.clone()), "y", x),
-                ) {
-                    Ok(Num(_)) => Type::Num,
-                    Ok(Vector(v)) if v.len() == 2 => Type::Vector,
-                    Ok(Vector(v)) if v.len() == 3 => Type::Vector3D,
-                    Ok(_) => {
-                        println!("bad output");
-                        exit(1)
-                    }
-                    Err(s) => {
-                        println!("{s}");
-                        exit(1)
-                    }
-                };
+    let (a, b) = data
+        .into_iter()
+        .map(|(name, func, funcvar, _)| {
+            let x = Num(Number::from(rug::Complex::new(options.prec), None));
+            let graph_type = match do_math(
+                place_var(place_var(func.clone(), "x", x.clone()), "y", x.clone()),
+                *options,
+                place_funcvar(place_funcvar(funcvar.clone(), "x", x.clone()), "y", x),
+            ) {
+                Ok(Num(_)) => Type::Num,
+                Ok(Vector(v)) if v.len() == 2 => Type::Vector,
+                Ok(Vector(v)) if v.len() == 3 => Type::Vector3D,
+                Ok(_) => {
+                    println!("bad output");
+                    exit(1)
+                }
+                Err(s) => {
+                    println!("{s}");
+                    exit(1)
+                }
+            };
+            (
                 Plot {
                     func,
                     funcvar,
                     graph_type,
-                }
-            })
-            .collect(),
-        how,
-    )
+                },
+                name,
+            )
+        })
+        .unzip();
+    (a, b, how)
 }
 fn compact(mut graph: Vec<Complex>) -> (Vec<Complex>, bool) {
     let complex = graph.iter().any(|a| {
