@@ -349,9 +349,16 @@ impl App {
         }
         let data = Data { data, options };
         let (graph, complex) = if graphing_mode.y {
-            data.generate_3d(-2.0, -2.0, 2.0, 2.0, 64, 64)
+            data.generate_3d(
+                options.xr.0,
+                options.yr.0,
+                options.xr.1,
+                options.yr.1,
+                options.samples_3d.0,
+                options.samples_3d.1,
+            )
         } else {
-            data.generate_2d(-2.0, 2.0, 256)
+            data.generate_2d(options.xr.0, options.xr.1, options.samples_2d)
         };
         let names = names
             .into_iter()
@@ -395,7 +402,13 @@ impl App {
                 Name { name, show }
             })
             .collect();
-        let mut plot = Graph::new(graph, names, complex, -2.0, 2.0);
+        if options.vxr.0 != 0.0 || options.vxr.1 != 0.0 {
+            options.xr = options.vxr;
+        }
+        if options.vyr.0 != 0.0 || options.vyr.1 != 0.0 {
+            options.yr = options.vyr;
+        }
+        let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);
         plot.is_complex = complex;
         plot.mult = 1.0 / 16.0;
         Self {
@@ -439,7 +452,8 @@ impl Data {
         match plot.update_res() {
             UpdateResult::Width(s, e, Prec::Mult(p)) => {
                 plot.clear_data();
-                let (data, complex) = self.generate_2d(s, e, (p * 512.0) as usize);
+                let (data, complex) =
+                    self.generate_2d(s, e, (p * self.options.samples_2d as f64) as usize);
                 plot.is_complex |= complex;
                 plot.set_data(data);
             }
@@ -447,12 +461,13 @@ impl Data {
                 plot.clear_data();
                 let (data, complex) = match p {
                     Prec::Mult(p) => {
-                        let l = (p * 64.0) as usize;
-                        self.generate_3d(sx, sy, ex, ey, l, l)
+                        let lx = (p * self.options.samples_3d.0 as f64) as usize;
+                        let ly = (p * self.options.samples_3d.1 as f64) as usize;
+                        self.generate_3d(sx, sy, ex, ey, lx, ly)
                     }
                     Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x / 16, y / 16),
                     Prec::Slice(p, view_x, slice) => {
-                        let l = (p * 512.0) as usize;
+                        let l = (p * self.options.samples_2d as f64) as usize;
                         self.generate_3d_slice(sx, sy, ex, ey, l, l, slice, view_x)
                     }
                 };
