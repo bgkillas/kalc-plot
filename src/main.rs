@@ -5,14 +5,30 @@ use kalc_lib::math::do_math;
 use kalc_lib::misc::{place_funcvar, place_var};
 use kalc_lib::options::silent_commands;
 use kalc_lib::parse::simplify;
-use kalc_lib::units::{Colors, HowGraphing, Number, Options};
+use kalc_lib::units::{Colors, HowGraphing, Number, Options, Variable};
 use rayon::iter::ParallelIterator;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
 use rupl::types::{Complex, Graph, GraphType, Prec, UpdateResult};
 use std::env::args;
+use std::io::StdinLock;
 use std::process::exit;
 fn main() {
-    if let Some(function) = args().next_back() {
+    let args = args().collect::<Vec<String>>();
+    if let Some(function) = args.last() {
+        let data = if args.len() > 2 && args[1] == "-d" {
+            let stdin = std::io::stdin().lock();
+            serde_json::from_reader::<StdinLock, kalc_lib::units::Data>(stdin).unwrap()
+        } else {
+            let options = Options {
+                prec: 128,
+                graphing: true,
+                ..Options::default()
+            };
+            kalc_lib::units::Data {
+                vars: get_vars(options),
+                options,
+            }
+        };
         #[cfg(feature = "egui")]
         {
             eframe::run_native(
@@ -39,7 +55,7 @@ fn main() {
                         .unwrap()
                         .insert(0, "notosans".to_owned());
                     cc.egui_ctx.set_fonts(fonts);
-                    Ok(Box::new(App::new(function)))
+                    Ok(Box::new(App::new(function.to_string(), data)))
                 }),
             )
             .unwrap();
@@ -47,7 +63,7 @@ fn main() {
         #[cfg(feature = "skia")]
         {
             let event_loop = winit::event_loop::EventLoop::new().unwrap();
-            let mut app = App::new(function);
+            let mut app = App::new(function.to_string(), data);
             event_loop.run_app(&mut app).unwrap()
         }
     }
@@ -320,13 +336,9 @@ impl winit::application::ApplicationHandler for App {
 }
 
 impl App {
-    fn new(function: String) -> Self {
-        let mut options = Options {
-            prec: 128,
-            graphing: true,
-            ..Options::default()
-        };
-        let (data, graphing_mode) = init(&function, &mut options);
+    fn new(function: String, data: kalc_lib::units::Data) -> Self {
+        let kalc_lib::units::Data { mut options, vars } = data;
+        let (data, graphing_mode) = init(&function, &mut options, vars);
         if !graphing_mode.graph {
             println!("no graph");
             exit(1)
@@ -777,8 +789,11 @@ impl Data {
     }
 }
 #[allow(clippy::type_complexity)]
-fn init(function: &str, options: &mut Options) -> (Vec<Plot>, HowGraphing) {
-    let mut vars = get_vars(*options);
+fn init(
+    function: &str,
+    options: &mut Options,
+    mut vars: Vec<Variable>,
+) -> (Vec<Plot>, HowGraphing) {
     let mut function = function.to_string();
     {
         let mut split = function

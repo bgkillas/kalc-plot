@@ -1775,6 +1775,7 @@ dependencies = [
  "gmp-mpfr-sys",
  "rayon",
  "rug",
+ "serde",
 ]
 
 [[package]]
@@ -1787,6 +1788,7 @@ dependencies = [
  "rayon",
  "rug",
  "rupl",
+ "serde_json",
  "softbuffer",
  "winit",
 ]
@@ -2711,6 +2713,7 @@ dependencies = [
  "gmp-mpfr-sys",
  "libc",
  "libm",
+ "serde",
 ]
 
 [[package]]
