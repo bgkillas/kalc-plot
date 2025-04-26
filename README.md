@@ -1,6 +1,6 @@
 # kalc-plot
 
-a [rupl](https://github.com/bgkillas/kalc-plot) implementation using
+a [rupl](https://github.com/bgkillas/rupl) implementation using
 [kalc-lib](https://github.com/bgkillas/kalc-lib) to calculate data points, expected to be used in
 [kalc](https://github.com/bgkillas/kalc)
 

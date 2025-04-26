@@ -1780,8 +1780,6 @@ dependencies = [
 [[package]]
 name = "kalc-lib"
 version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ee414a8ecd4539f24c04b0c3cda915ef9174fbef4db46bcd34cb84c1224b13f"
 dependencies = [
  "fastrand",
  "gmp-mpfr-sys",
@@ -2733,8 +2731,6 @@ dependencies = [
 [[package]]
 name = "rupl"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b087c478035eefcb8a163e8e36123bc0bee3023d1307f20fd1d78dabfb4b9028"
 dependencies = [
  "egui",
  "eyre",
