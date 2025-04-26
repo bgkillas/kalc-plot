@@ -465,10 +465,10 @@ impl Data {
                         let ly = (p * self.options.samples_3d.1 as f64) as usize;
                         self.generate_3d(sx, sy, ex, ey, lx, ly)
                     }
-                    Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x / 16, y / 16),
-                    Prec::Slice(p, view_x, slice) => {
+                    Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x, y),
+                    Prec::Slice(p) => {
                         let l = (p * self.options.samples_2d as f64) as usize;
-                        self.generate_3d_slice(sx, sy, ex, ey, l, l, slice, view_x)
+                        self.generate_3d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x)
                     }
                 };
                 plot.is_complex |= complex;
