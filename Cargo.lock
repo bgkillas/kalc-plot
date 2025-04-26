@@ -1790,7 +1790,7 @@ dependencies = [
 
 [[package]]
 name = "kalc-plot"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "eframe",
  "egui",
@@ -2730,7 +2730,7 @@ dependencies = [
 
 [[package]]
 name = "rupl"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "egui",
  "eyre",
