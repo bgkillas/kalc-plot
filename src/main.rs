@@ -64,7 +64,7 @@ fn main() {
             )
             .unwrap();
         }
-        #[cfg(feature = "skia")]
+        #[cfg(any(feature = "skia", feature = "tiny-skia"))]
         {
             let event_loop = winit::event_loop::EventLoop::new().unwrap();
             let mut app = App::new(function.to_string(), data);
@@ -76,17 +76,17 @@ fn main() {
 struct App {
     plot: Graph,
     data: Data,
-    #[cfg(feature = "skia")]
+    #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     surface_state: Option<
         softbuffer::Surface<std::rc::Rc<winit::window::Window>, std::rc::Rc<winit::window::Window>>,
     >,
-    #[cfg(feature = "skia")]
+    #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     input_state: rupl::types::InputState,
-    #[cfg(feature = "skia")]
+    #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     name: String,
-    #[cfg(feature = "skia")]
+    #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     touch_positions: std::collections::HashMap<u64, rupl::types::Vec2>,
-    #[cfg(feature = "skia")]
+    #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     last_touch_positions: std::collections::HashMap<u64, rupl::types::Vec2>,
 }
 
@@ -114,7 +114,7 @@ impl eframe::App for App {
     }
 }
 
-#[cfg(feature = "skia")]
+#[cfg(any(feature = "skia", feature = "tiny-skia"))]
 impl winit::application::ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let window = {
@@ -414,15 +414,15 @@ impl App {
         Self {
             plot,
             data,
-            #[cfg(feature = "skia")]
+            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             surface_state: None,
-            #[cfg(feature = "skia")]
+            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             input_state: rupl::types::InputState::default(),
-            #[cfg(feature = "skia")]
+            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             name: function,
-            #[cfg(feature = "skia")]
+            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             touch_positions: Default::default(),
-            #[cfg(feature = "skia")]
+            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             last_touch_positions: Default::default(),
         }
     }
@@ -436,7 +436,7 @@ impl App {
                 self.plot.update(ctx, ui);
             });
     }
-    #[cfg(feature = "skia")]
+    #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     fn main(&mut self, width: u32, height: u32) {
         if let Some(buffer) = &mut self.surface_state {
             let mut buffer = buffer.buffer_mut().unwrap();

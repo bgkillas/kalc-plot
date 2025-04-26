@@ -2736,6 +2736,7 @@ dependencies = [
  "eyre",
  "rayon",
  "skia-safe",
+ "tiny-skia",
  "winit",
 ]
 
@@ -3202,6 +3203,7 @@ dependencies = [
  "bytemuck",
  "cfg-if",
  "log",
+ "png",
  "tiny-skia-path",
 ]
 
