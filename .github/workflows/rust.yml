@@ -10,10 +10,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
+  build-egui:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
     - name: depends
@@ -23,14 +21,48 @@ jobs:
         git clone https://github.com/bgkillas/kalc-lib
         cd kalc-plot
     - name: Build egui
-      run: cargo build --no-default-features --features "egui" --verbose
+      run: cargo build --no-default-features --features "egui"
     - name: Run tests egui
-      run: cargo test --no-default-features --features "egui" --verbose
+      run: cargo test --no-default-features --features "egui"
+  build-skia:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: depends
+      run: |
+        cd ..
+        git clone https://github.com/bgkillas/rupl
+        git clone https://github.com/bgkillas/kalc-lib
+        cd kalc-plot
     - name: Build skia
-      run: cargo build --no-default-features --features "skia" --verbose
+      run: cargo build --no-default-features --features "skia"
     - name: Run tests skia
-      run: cargo test --no-default-features --features "skia" --verbose
+      run: cargo test --no-default-features --features "skia"
+  build-tiny-skia:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: depends
+      run: |
+        cd ..
+        git clone https://github.com/bgkillas/rupl
+        git clone https://github.com/bgkillas/kalc-lib
+        cd kalc-plot
     - name: Build tiny-skia
-      run: cargo build --no-default-features --features "tiny-skia" --verbose
+      run: cargo build --no-default-features --features "tiny-skia"
     - name: Run tests tiny-skia
-      run: cargo test --no-default-features --features "tiny-skia" --verbose
+      run: cargo test --no-default-features --features "tiny-skia"
+  lint:
+     runs-on: ubuntu-latest
+     steps:
+       - uses: actions/checkout@v4
+       - name: depends
+         run: |
+           cd ..
+           git clone https://github.com/bgkillas/rupl
+           git clone https://github.com/bgkillas/kalc-lib
+           cd kalc-plot
+       - name: fmt
+         run: cargo fmt --check
+       - name: lint
+         run: cargo clippy
