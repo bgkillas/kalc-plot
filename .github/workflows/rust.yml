@@ -16,6 +16,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: depends
+      run: |
+        cd ..
+        git clone https://github.com/bgkillas/rupl
+        git clone https://github.com/bgkillas/kalc-lib
+        cd kalc-plot
     - name: Build egui
       run: cargo build --no-default-features --features "egui" --verbose
     - name: Run tests egui
