@@ -1,0 +1,30 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build egui
+      run: cargo build --no-default-features --features "egui" --verbose
+    - name: Run tests egui
+      run: cargo test --no-default-features --features "egui" --verbose
+    - name: Build skia
+      run: cargo build --no-default-features --features "skia" --verbose
+    - name: Run tests skia
+      run: cargo test --no-default-features --features "skia" --verbose
+    - name: Build tiny-skia
+      run: cargo build --no-default-features --features "tiny-skia" --verbose
+    - name: Run tests tiny-skia
+      run: cargo test --no-default-features --features "tiny-skia" --verbose
