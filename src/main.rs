@@ -13,6 +13,7 @@ use std::env::args;
 use std::io::StdinLock;
 use std::process::exit;
 fn main() {
+    //TODO skia png shouldn't be seperate really
     let args = args().collect::<Vec<String>>();
     if let Some(function) = args.last() {
         let data = if args.len() > 2 && args[1] == "-d" {
@@ -498,7 +499,7 @@ impl Data {
                         .into_par_iter()
                         .flat_map(|j| {
                             let y = starty + j as f64 * dy;
-                            let y = Num(Number::from(
+                            let y = NumStr::new(Number::from(
                                 rug::Complex::with_val(self.options.prec, y),
                                 None,
                             ));
@@ -508,7 +509,7 @@ impl Data {
                             let mut data = Vec::with_capacity(lenx + 1);
                             for i in 0..=lenx {
                                 let x = startx + i as f64 * dx;
-                                let x = Num(Number::from(
+                                let x = NumStr::new(Number::from(
                                     rug::Complex::with_val(self.options.prec, x),
                                     None,
                                 ));
@@ -539,7 +540,7 @@ impl Data {
                         .into_par_iter()
                         .flat_map(|j| {
                             let y = starty + j as f64 * dy;
-                            let y = Num(Number::from(
+                            let y = NumStr::new(Number::from(
                                 rug::Complex::with_val(self.options.prec, y),
                                 None,
                             ));
@@ -549,7 +550,7 @@ impl Data {
                             let mut data = Vec::with_capacity(lenx + 1);
                             for i in 0..=lenx {
                                 let x = startx + i as f64 * dx;
-                                let x = Num(Number::from(
+                                let x = NumStr::new(Number::from(
                                     rug::Complex::with_val(self.options.prec, x),
                                     None,
                                 ));
@@ -587,7 +588,7 @@ impl Data {
                         .into_par_iter()
                         .flat_map(|j| {
                             let y = starty + j as f64 * dy;
-                            let y = Num(Number::from(
+                            let y = NumStr::new(Number::from(
                                 rug::Complex::with_val(self.options.prec, y),
                                 None,
                             ));
@@ -597,7 +598,7 @@ impl Data {
                             let mut data = Vec::with_capacity(lenx + 1);
                             for i in 0..=lenx {
                                 let x = startx + i as f64 * dx;
-                                let x = Num(Number::from(
+                                let x = NumStr::new(Number::from(
                                     rug::Complex::with_val(self.options.prec, x),
                                     None,
                                 ));
@@ -652,7 +653,7 @@ impl Data {
         let dy = (endy - starty) / leny as f64;
         let data = if view_x {
             let y = starty + (slice as f64 + leny as f64 / 2.0) * dy;
-            let y = Num(Number::from(
+            let y = NumStr::new(Number::from(
                 rug::Complex::with_val(self.options.prec, y),
                 None,
             ));
@@ -668,7 +669,7 @@ impl Data {
                                 .into_par_iter()
                                 .map(|i| {
                                     let x = startx + i as f64 * dx;
-                                    let x = Num(Number::from(
+                                    let x = NumStr::new(Number::from(
                                         rug::Complex::with_val(self.options.prec, x),
                                         None,
                                     ));
@@ -697,7 +698,7 @@ impl Data {
                 .collect::<Vec<(GraphType, bool)>>()
         } else {
             let x = startx + (slice as f64 + lenx as f64 / 2.0) * dx;
-            let x = Num(Number::from(
+            let x = NumStr::new(Number::from(
                 rug::Complex::with_val(self.options.prec, x),
                 None,
             ));
@@ -713,7 +714,7 @@ impl Data {
                                 .into_par_iter()
                                 .map(|i| {
                                     let y = starty + i as f64 * dy;
-                                    let y = Num(Number::from(
+                                    let y = NumStr::new(Number::from(
                                         rug::Complex::with_val(self.options.prec, y),
                                         None,
                                     ));
@@ -755,7 +756,7 @@ impl Data {
                         .into_par_iter()
                         .map(|i| {
                             let x = start + i as f64 * dx;
-                            let x = Num(Number::from(
+                            let x = NumStr::new(Number::from(
                                 rug::Complex::with_val(self.options.prec, x),
                                 None,
                             ));
@@ -779,7 +780,7 @@ impl Data {
                         .into_par_iter()
                         .map(|i| {
                             let x = start + i as f64 * dx;
-                            let x = Num(Number::from(
+                            let x = NumStr::new(Number::from(
                                 rug::Complex::with_val(self.options.prec, x),
                                 None,
                             ));
@@ -813,7 +814,7 @@ impl Data {
                         .into_par_iter()
                         .map(|i| {
                             let x = start + i as f64 * dx;
-                            let x = Num(Number::from(
+                            let x = NumStr::new(Number::from(
                                 rug::Complex::with_val(self.options.prec, x),
                                 None,
                             ));
@@ -918,7 +919,7 @@ fn init(
     let (a, b) = data
         .into_iter()
         .map(|(name, func, funcvar, _)| {
-            let x = Num(Number::from(rug::Complex::new(options.prec), None));
+            let x = NumStr::new(Number::from(rug::Complex::new(options.prec), None));
             let graph_type = match do_math(
                 place_var(place_var(func.clone(), "x", x.clone()), "y", x.clone()),
                 *options,

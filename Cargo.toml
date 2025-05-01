@@ -9,7 +9,7 @@ repository = "https://github.com/bgkillas/kalc-plot"
 homepage = "https://github.com/bgkillas/kalc-plot"
 
 [features]
-default=["tiny-skia"]
+default=["skia"]
 egui=["dep:egui","dep:eframe","rupl/egui"]
 skia=["rupl/skia" ,"rupl/winit", "dep:winit", "dep:softbuffer"]
 tiny-skia=["rupl/tiny-skia" ,"rupl/winit", "dep:winit", "dep:softbuffer"]
