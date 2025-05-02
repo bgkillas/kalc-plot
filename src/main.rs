@@ -14,6 +14,8 @@ use std::io::StdinLock;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use std::io::Write;
 use std::process::exit;
+//TODO support y^2
+//TODO {x/2, x^2} does not graph off of var
 fn main() {
     let args = args().collect::<Vec<String>>();
     if let Some(function) = args.last() {
@@ -381,12 +383,8 @@ impl App {
             colors,
         } = data;
         let (data, names, graphing_mode) = init(&function, &mut options, vars);
-        if !graphing_mode.graph {
-            eprintln!("no graph");
-            exit(1)
-        }
         let data = Data { data, options };
-        let (graph, complex) = if graphing_mode.y {
+        let (graph, complex) = if graphing_mode.x && graphing_mode.y {
             data.generate_3d(
                 options.xr.0,
                 options.yr.0,
@@ -759,8 +757,8 @@ impl Data {
                             let (a, b) = compact(data);
                             (GraphType::Width3D(a, startx, starty, endx, endy), b)
                         }
-                        Type::Vector => todo!(),
-                        Type::Vector3D => todo!(),
+                        Type::Vector => unreachable!(),
+                        Type::Vector3D => unreachable!(),
                     }
                 })
                 .collect::<Vec<(GraphType, bool)>>()
@@ -804,8 +802,8 @@ impl Data {
                             let (a, b) = compact(data);
                             (GraphType::Width3D(a, startx, starty, endx, endy), b)
                         }
-                        Type::Vector => todo!(),
-                        Type::Vector3D => todo!(),
+                        Type::Vector => unreachable!(),
+                        Type::Vector3D => unreachable!(),
                     }
                 })
                 .collect::<Vec<(GraphType, bool)>>()
@@ -980,10 +978,6 @@ fn init(
         })
         .collect::<Vec<(String, Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing)>>();
     let how = data[0].3;
-    if !how.graph {
-        eprintln!("no graph 2");
-        exit(1) //TODO
-    }
     let (a, b) = data
         .into_iter()
         .map(|(name, func, funcvar, _)| {
