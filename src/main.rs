@@ -10,7 +10,9 @@ use rayon::iter::ParallelIterator;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
 use rupl::types::{Complex, Graph, GraphType, Name, Prec, Show, UpdateResult};
 use std::env::args;
-use std::io::{StdinLock, Write};
+use std::io::StdinLock;
+#[cfg(any(feature = "skia", feature = "tiny-skia"))]
+use std::io::Write;
 use std::process::exit;
 fn main() {
     let args = args().collect::<Vec<String>>();
