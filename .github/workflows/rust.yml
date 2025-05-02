@@ -34,6 +34,10 @@ jobs:
         git clone https://github.com/bgkillas/rupl
         git clone https://github.com/bgkillas/kalc-lib
         cd kalc-plot
+    - name: deps
+      run: |
+        sudo apt update
+        sudo apt install libfontconfig1-dev libfreetype6-dev
     - name: Build skia
       run: cargo build --no-default-features --features "skia"
     - name: Run tests skia
