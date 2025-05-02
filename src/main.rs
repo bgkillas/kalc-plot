@@ -76,10 +76,13 @@ fn main() {
                 let event_loop = winit::event_loop::EventLoop::new().unwrap();
                 event_loop.run_app(&mut app).unwrap()
             } else {
+                app.plot.set_screen(width as f64, height as f64);
+                app.plot.mult = 1.0;
+                app.plot.disable_lines = true;
+                app.plot.disable_axis = true;
+                app.data.update(&mut app.plot);
                 #[cfg(feature = "skia")]
                 {
-                    app.plot.set_screen(width as f64, height as f64);
-                    app.data.update(&mut app.plot);
                     let bytes = app.plot.get_png(width as u32, height as u32);
                     if f == "-" {
                         std::io::stdout()
@@ -379,7 +382,7 @@ impl App {
         } = data;
         let (data, names, graphing_mode) = init(&function, &mut options, vars);
         if !graphing_mode.graph {
-            println!("no graph");
+            eprintln!("no graph");
             exit(1)
         }
         let data = Data { data, options };
@@ -589,7 +592,7 @@ impl Data {
                                             n.number.imag().to_f64(),
                                         )
                                     } else {
-                                        println!("inconsistent data type 1");
+                                        eprintln!("inconsistent data type 1");
                                         exit(1)
                                     },
                                 )
@@ -626,7 +629,7 @@ impl Data {
                                         place_funcvar(modifiedvars.clone(), "x", x),
                                     ) {
                                         if n.len() != 2 {
-                                            println!("inconsistent vector length 2");
+                                            eprintln!("inconsistent vector length 2");
                                             exit(1)
                                         }
                                         (
@@ -637,7 +640,7 @@ impl Data {
                                             ),
                                         )
                                     } else {
-                                        println!("data type 2");
+                                        eprintln!("data type 2");
                                         exit(1)
                                     },
                                 )
@@ -674,7 +677,7 @@ impl Data {
                                         place_funcvar(modifiedvars.clone(), "x", x),
                                     ) {
                                         if n.len() != 3 {
-                                            println!("inconsistent vector length 3");
+                                            eprintln!("inconsistent vector length 3");
                                             exit(1)
                                         }
                                         (
@@ -686,7 +689,7 @@ impl Data {
                                             ),
                                         )
                                     } else {
-                                        println!("data type 3");
+                                        eprintln!("data type 3");
                                         exit(1)
                                     },
                                 )
@@ -748,7 +751,7 @@ impl Data {
                                             n.number.imag().to_f64(),
                                         )
                                     } else {
-                                        println!("data type 4");
+                                        eprintln!("data type 4");
                                         exit(1)
                                     }
                                 })
@@ -793,7 +796,7 @@ impl Data {
                                             n.number.imag().to_f64(),
                                         )
                                     } else {
-                                        println!("data type 5");
+                                        eprintln!("data type 5");
                                         exit(1)
                                     }
                                 })
@@ -832,7 +835,7 @@ impl Data {
                             ) {
                                 Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
                             } else {
-                                println!("data type 6");
+                                eprintln!("data type 6");
                                 exit(1)
                             }
                         })
@@ -855,7 +858,7 @@ impl Data {
                                 place_funcvar(data.funcvar.clone(), "x", x),
                             ) {
                                 if n.len() != 2 {
-                                    println!("inconsistent vector length 7");
+                                    eprintln!("inconsistent vector length 7");
                                     exit(1)
                                 }
                                 (
@@ -866,7 +869,7 @@ impl Data {
                                     ),
                                 )
                             } else {
-                                println!("data type 7");
+                                eprintln!("data type 7");
                                 exit(1)
                             }
                         })
@@ -889,7 +892,7 @@ impl Data {
                                 place_funcvar(data.funcvar.clone(), "x", x),
                             ) {
                                 if n.len() != 3 {
-                                    println!("inconsistent vector length 8");
+                                    eprintln!("inconsistent vector length 8");
                                     exit(1)
                                 }
                                 (
@@ -901,7 +904,7 @@ impl Data {
                                     ),
                                 )
                             } else {
-                                println!("data type 8");
+                                eprintln!("data type 8");
                                 exit(1)
                             }
                         })
@@ -943,7 +946,7 @@ fn init(
                         &mut vars,
                         &s.chars().collect::<Vec<char>>(),
                     ) {
-                        println!("{s}");
+                        eprintln!("{s}");
                         exit(1)
                     }
                 }
@@ -970,7 +973,7 @@ fn init(
             ) {
                 Ok((func, funcvar, how, _, _)) => (function.to_string(), func, funcvar, how),
                 Err(s) => {
-                    println!("{s}");
+                    eprintln!("{s}");
                     exit(1)
                 }
             }
@@ -978,7 +981,7 @@ fn init(
         .collect::<Vec<(String, Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing)>>();
     let how = data[0].3;
     if !how.graph {
-        println!("no graph 2");
+        eprintln!("no graph 2");
         exit(1) //TODO
     }
     let (a, b) = data
@@ -994,11 +997,11 @@ fn init(
                 Ok(Vector(v)) if v.len() == 2 => Type::Vector,
                 Ok(Vector(v)) if v.len() == 3 => Type::Vector3D,
                 Ok(_) => {
-                    println!("bad output");
+                    eprintln!("bad output");
                     exit(1)
                 }
                 Err(s) => {
-                    println!("{s}");
+                    eprintln!("{s}");
                     exit(1)
                 }
             };
