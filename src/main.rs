@@ -10,7 +10,7 @@ use rayon::iter::ParallelIterator;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
 use rupl::types::{Complex, Graph, GraphType, Name, Prec, Show, UpdateResult};
 use std::env::args;
-use std::io::StdinLock;
+use std::io::{StdinLock, Write};
 use std::process::exit;
 fn main() {
     //TODO skia png shouldn't be seperate really
@@ -32,6 +32,7 @@ fn main() {
             kalc_lib::units::Data {
                 vars: get_vars(options),
                 options,
+                colors: Default::default(),
             }
         };
         #[cfg(feature = "egui")]
@@ -67,9 +68,35 @@ fn main() {
         }
         #[cfg(any(feature = "skia", feature = "tiny-skia"))]
         {
-            let event_loop = winit::event_loop::EventLoop::new().unwrap();
+            let f = data.colors.graphtofile.clone();
+            let (width, height) = data.options.window_size;
             let mut app = App::new(function.to_string(), data);
-            event_loop.run_app(&mut app).unwrap()
+            if f.is_empty() {
+                let event_loop = winit::event_loop::EventLoop::new().unwrap();
+                event_loop.run_app(&mut app).unwrap()
+            } else {
+                #[cfg(feature = "skia")]
+                {
+                    let bytes = app.plot.get_png(width as u32, height as u32);
+                    if f == "-" {
+                        std::io::stdout()
+                            .lock()
+                            .write_all(bytes.as_bytes())
+                            .unwrap()
+                    } else {
+                        std::fs::write(f, bytes.as_bytes()).unwrap()
+                    }
+                }
+                #[cfg(feature = "tiny-skia")]
+                {
+                    let bytes = &app.plot.get_png(width as u32, height as u32);
+                    if f == "-" {
+                        std::io::stdout().lock().write_all(&bytes).unwrap()
+                    } else {
+                        std::fs::write(f, &bytes).unwrap()
+                    }
+                }
+            }
         }
     }
 }
@@ -342,7 +369,11 @@ impl winit::application::ApplicationHandler for App {
 
 impl App {
     fn new(function: String, data: kalc_lib::units::Data) -> Self {
-        let kalc_lib::units::Data { mut options, vars } = data;
+        let kalc_lib::units::Data {
+            mut options,
+            vars,
+            colors,
+        } = data;
         let (data, names, graphing_mode) = init(&function, &mut options, vars);
         if !graphing_mode.graph {
             println!("no graph");
@@ -412,6 +443,24 @@ impl App {
         let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);
         plot.is_complex = complex;
         plot.mult = 1.0 / 16.0;
+        plot.main_colors = colors
+            .recol
+            .iter()
+            .map(|color| rupl::types::Color {
+                r: u8::from_str_radix(&color[1..3], 16).unwrap(),
+                g: u8::from_str_radix(&color[3..5], 16).unwrap(),
+                b: u8::from_str_radix(&color[5..7], 16).unwrap(),
+            })
+            .collect();
+        plot.alt_colors = colors
+            .imcol
+            .iter()
+            .map(|color| rupl::types::Color {
+                r: u8::from_str_radix(&color[1..3], 16).unwrap(),
+                g: u8::from_str_radix(&color[3..5], 16).unwrap(),
+                b: u8::from_str_radix(&color[5..7], 16).unwrap(),
+            })
+            .collect();
         Self {
             plot,
             data,
