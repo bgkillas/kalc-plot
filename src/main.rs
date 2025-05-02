@@ -13,7 +13,6 @@ use std::env::args;
 use std::io::{StdinLock, Write};
 use std::process::exit;
 fn main() {
-    //TODO skia png shouldn't be seperate really
     let args = args().collect::<Vec<String>>();
     if let Some(function) = args.last() {
         let data = if args.len() > 2 && args[1] == "-d" {
@@ -77,6 +76,8 @@ fn main() {
             } else {
                 #[cfg(feature = "skia")]
                 {
+                    app.plot.set_screen(width as f64, height as f64);
+                    app.data.update(&mut app.plot);
                     let bytes = app.plot.get_png(width as u32, height as u32);
                     if f == "-" {
                         std::io::stdout()
@@ -461,6 +462,19 @@ impl App {
                 b: u8::from_str_radix(&color[5..7], 16).unwrap(),
             })
             .collect();
+        if plot.is_3d {
+            match options.graphtype {
+                kalc_lib::units::GraphType::Domain => {
+                    plot.set_mode(rupl::types::GraphMode::DomainColoring)
+                }
+                kalc_lib::units::GraphType::DomainAlt => {
+                    plot.set_mode(rupl::types::GraphMode::DomainColoring);
+                    plot.domain_alternate = true;
+                }
+                _ => {}
+            }
+        }
+        data.update(&mut plot);
         Self {
             plot,
             data,
