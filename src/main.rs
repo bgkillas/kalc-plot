@@ -378,11 +378,11 @@ impl winit::application::ApplicationHandler for App {
     }
 }
 
-fn get_names(graph: &[GraphType], names: Vec<String>) -> Vec<Name> {
+fn get_names(graph: &[GraphType], names: Vec<(Vec<String>, String)>) -> Vec<Name> {
     names
         .into_iter()
         .zip(graph.iter())
-        .map(|(name, data)| {
+        .map(|((vars, name), data)| {
             let (real, imag) = match data {
                 GraphType::Width(data, _, _) => (
                     data.iter()
@@ -416,11 +416,7 @@ fn get_names(graph: &[GraphType], names: Vec<String>) -> Vec<Name> {
             } else {
                 Show::Real
             };
-            Name {
-                name,
-                show,
-                vars: Vec::new(),
-            }
+            Name { name, show, vars }
         })
         .collect()
 }
@@ -543,13 +539,12 @@ impl Data {
                 .collect::<Vec<String>>()
                 .join("#");
             let how;
-            let name;
-            (self.data, name, how) = init(&func, &mut self.options, self.vars.clone()).unwrap_or((
-                Vec::new(),
-                Vec::new(),
-                HowGraphing::default(),
-            ));
-            names = Some(name);
+            let new_name;
+            (self.data, new_name, how) = init(&func, &mut self.options, self.vars.clone())
+                .unwrap_or((Vec::new(), Vec::new(), HowGraphing::default()));
+            if !new_name.is_empty() || name.is_empty() {
+                names = Some(new_name);
+            }
             plot.set_is_3d(how.x && how.y && how.graph)
         }
         if let Some(bound) = plot.update_res() {
@@ -992,16 +987,17 @@ fn init(
     function: &str,
     options: &mut Options,
     mut vars: Vec<Variable>,
-) -> Result<(Vec<Plot>, Vec<String>, HowGraphing), &'static str> {
+) -> Result<(Vec<Plot>, Vec<(Vec<String>, String)>, HowGraphing), &'static str> {
+    let mut split;
     let mut function = function.to_string();
     {
-        let mut split = function
+        split = function
             .split(';')
             .map(|a| a.to_string())
             .collect::<Vec<String>>();
         if split.len() != 1 {
             function = split.pop().unwrap();
-            for s in split {
+            for s in &split {
                 silent_commands(
                     options,
                     &s.chars()
@@ -1102,7 +1098,12 @@ fn init(
         a.push(i?);
         b.push(j?);
     }
-    Ok((a, b, how))
+    let mut v = Vec::with_capacity(b.len());
+    v.push((split, b[0].clone()));
+    for b in b[1..].iter() {
+        v.push((Vec::new(), b.to_string()));
+    }
+    Ok((a, v, how))
 }
 fn compact(mut graph: Vec<Complex>) -> (Vec<Complex>, bool) {
     let complex = graph.iter().any(|a| {
