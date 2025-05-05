@@ -14,7 +14,6 @@ use std::io::StdinLock;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use std::io::Write;
 use std::process::exit;
-//TODO support y^2
 //TODO {x/2, x^2} does not graph off of var
 fn main() {
     let args = args().collect::<Vec<String>>();
@@ -125,8 +124,11 @@ struct App {
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     last_touch_positions: std::collections::HashMap<u64, rupl::types::Vec2>,
 }
-
-enum Type {
+struct Type {
+    val: Val,
+    inv: bool,
+}
+enum Val {
     Num,
     Vector,
     Vector3D,
@@ -589,8 +591,8 @@ impl Data {
         let data = self
             .data
             .par_iter()
-            .map(|data| match data.graph_type {
-                Type::Num => {
+            .map(|data| match data.graph_type.val {
+                Val::Num => {
                     let data = (0..=leny)
                         .into_par_iter()
                         .flat_map(|j| {
@@ -620,7 +622,7 @@ impl Data {
                                             n.number.imag().to_f64(),
                                         )
                                     } else {
-                                        eprintln!("inconsistent data type 1");
+                                        eprintln!("\x1b[Ginconsistent data type 1");
                                         exit(1)
                                     },
                                 )
@@ -631,7 +633,7 @@ impl Data {
                     let (a, b) = compact(data);
                     (GraphType::Width3D(a, startx, starty, endx, endy), b)
                 }
-                Type::Vector => {
+                Val::Vector => {
                     let data = (0..=leny)
                         .into_par_iter()
                         .flat_map(|j| {
@@ -657,7 +659,7 @@ impl Data {
                                         place_funcvar(modifiedvars.clone(), "x", x),
                                     ) {
                                         if n.len() != 2 {
-                                            eprintln!("inconsistent vector length 2");
+                                            eprintln!("\x1b[Ginconsistent vector length 2");
                                             exit(1)
                                         }
                                         (
@@ -668,7 +670,7 @@ impl Data {
                                             ),
                                         )
                                     } else {
-                                        eprintln!("data type 2");
+                                        eprintln!("\x1b[Gdata type 2");
                                         exit(1)
                                     },
                                 )
@@ -679,7 +681,7 @@ impl Data {
                     let (a, b) = compact_coord(data);
                     (GraphType::Coord(a), b)
                 }
-                Type::Vector3D => {
+                Val::Vector3D => {
                     let data = (0..=leny)
                         .into_par_iter()
                         .flat_map(|j| {
@@ -705,7 +707,7 @@ impl Data {
                                         place_funcvar(modifiedvars.clone(), "x", x),
                                     ) {
                                         if n.len() != 3 {
-                                            eprintln!("inconsistent vector length 3");
+                                            eprintln!("\x1b[Ginconsistent vector length 3");
                                             exit(1)
                                         }
                                         (
@@ -717,7 +719,7 @@ impl Data {
                                             ),
                                         )
                                     } else {
-                                        eprintln!("data type 3");
+                                        eprintln!("\x1b[Gdata type 3");
                                         exit(1)
                                     },
                                 )
@@ -759,8 +761,8 @@ impl Data {
                     let mut modified = place_var(data.func.clone(), "y", y.clone());
                     let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y.clone());
                     simplify(&mut modified, &mut modifiedvars, self.options);
-                    match data.graph_type {
-                        Type::Num => {
+                    match data.graph_type.val {
+                        Val::Num => {
                             let data = (0..=lenx)
                                 .into_par_iter()
                                 .map(|i| {
@@ -779,7 +781,7 @@ impl Data {
                                             n.number.imag().to_f64(),
                                         )
                                     } else {
-                                        eprintln!("data type 4");
+                                        eprintln!("\x1b[Gdata type 4");
                                         exit(1)
                                     }
                                 })
@@ -787,8 +789,8 @@ impl Data {
                             let (a, b) = compact(data);
                             (GraphType::Width3D(a, startx, starty, endx, endy), b)
                         }
-                        Type::Vector => unreachable!(),
-                        Type::Vector3D => unreachable!(),
+                        Val::Vector => unreachable!(),
+                        Val::Vector3D => unreachable!(),
                     }
                 })
                 .collect::<Vec<(GraphType, bool)>>()
@@ -804,8 +806,8 @@ impl Data {
                     let mut modified = place_var(data.func.clone(), "x", x.clone());
                     let mut modifiedvars = place_funcvar(data.funcvar.clone(), "x", x.clone());
                     simplify(&mut modified, &mut modifiedvars, self.options);
-                    match data.graph_type {
-                        Type::Num => {
+                    match data.graph_type.val {
+                        Val::Num => {
                             let data = (0..=leny)
                                 .into_par_iter()
                                 .map(|i| {
@@ -824,7 +826,7 @@ impl Data {
                                             n.number.imag().to_f64(),
                                         )
                                     } else {
-                                        eprintln!("data type 5");
+                                        eprintln!("\x1b[Gdata type 5");
                                         exit(1)
                                     }
                                 })
@@ -832,8 +834,8 @@ impl Data {
                             let (a, b) = compact(data);
                             (GraphType::Width3D(a, startx, starty, endx, endy), b)
                         }
-                        Type::Vector => unreachable!(),
-                        Type::Vector3D => unreachable!(),
+                        Val::Vector => unreachable!(),
+                        Val::Vector3D => unreachable!(),
                     }
                 })
                 .collect::<Vec<(GraphType, bool)>>()
@@ -846,32 +848,60 @@ impl Data {
         let data = self
             .data
             .par_iter()
-            .map(|data| match data.graph_type {
-                Type::Num => {
-                    let data = (0..=len)
-                        .into_par_iter()
-                        .map(|i| {
-                            let x = start + i as f64 * dx;
-                            let x = NumStr::new(Number::from(
-                                rug::Complex::with_val(self.options.prec, x),
-                                None,
-                            ));
-                            if let Ok(Num(n)) = do_math(
-                                place_var(data.func.clone(), "x", x.clone()),
-                                self.options,
-                                place_funcvar(data.funcvar.clone(), "x", x),
-                            ) {
-                                Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
-                            } else {
-                                eprintln!("data type 6");
-                                exit(1)
-                            }
-                        })
-                        .collect::<Vec<Complex>>();
-                    let (a, b) = compact(data);
-                    (GraphType::Width(a, start, end), b)
+            .map(|data| match data.graph_type.val {
+                Val::Num => {
+                    if data.graph_type.inv {
+                        let data = (0..=len)
+                            .into_par_iter()
+                            .map(|i| {
+                                let xv = start + i as f64 * dx;
+                                let x = NumStr::new(Number::from(
+                                    rug::Complex::with_val(self.options.prec, xv),
+                                    None,
+                                ));
+                                if let Ok(Num(n)) = do_math(
+                                    place_var(data.func.clone(), "y", x.clone()),
+                                    self.options,
+                                    place_funcvar(data.funcvar.clone(), "y", x),
+                                ) {
+                                    (n.number.real().to_f64(), Complex::Complex(xv, 0.0))
+                                } else {
+                                    eprintln!("\x1b[Gdata type 6i");
+                                    exit(1)
+                                }
+                            })
+                            .collect::<Vec<(f64, Complex)>>();
+                        let (a, b) = compact_coord(data);
+                        (GraphType::Coord(a), b)
+                    } else {
+                        let data = (0..=len)
+                            .into_par_iter()
+                            .map(|i| {
+                                let x = start + i as f64 * dx;
+                                let x = NumStr::new(Number::from(
+                                    rug::Complex::with_val(self.options.prec, x),
+                                    None,
+                                ));
+                                if let Ok(Num(n)) = do_math(
+                                    place_var(data.func.clone(), "x", x.clone()),
+                                    self.options,
+                                    place_funcvar(data.funcvar.clone(), "x", x),
+                                ) {
+                                    Complex::Complex(
+                                        n.number.real().to_f64(),
+                                        n.number.imag().to_f64(),
+                                    )
+                                } else {
+                                    eprintln!("\x1b[Gdata type 6");
+                                    exit(1)
+                                }
+                            })
+                            .collect::<Vec<Complex>>();
+                        let (a, b) = compact(data);
+                        (GraphType::Width(a, start, end), b)
+                    }
                 }
-                Type::Vector => {
+                Val::Vector => {
                     let data = (0..=len)
                         .into_par_iter()
                         .map(|i| {
@@ -886,7 +916,7 @@ impl Data {
                                 place_funcvar(data.funcvar.clone(), "x", x),
                             ) {
                                 if n.len() != 2 {
-                                    eprintln!("inconsistent vector length 7");
+                                    eprintln!("\x1b[Ginconsistent vector length 7");
                                     exit(1)
                                 }
                                 (
@@ -897,7 +927,7 @@ impl Data {
                                     ),
                                 )
                             } else {
-                                eprintln!("data type 7");
+                                eprintln!("\x1b[Gdata type 7");
                                 exit(1)
                             }
                         })
@@ -905,7 +935,7 @@ impl Data {
                     let (a, b) = compact_coord(data);
                     (GraphType::Coord(a), b)
                 }
-                Type::Vector3D => {
+                Val::Vector3D => {
                     let data = (0..=len)
                         .into_par_iter()
                         .map(|i| {
@@ -920,7 +950,7 @@ impl Data {
                                 place_funcvar(data.funcvar.clone(), "x", x),
                             ) {
                                 if n.len() != 3 {
-                                    eprintln!("inconsistent vector length 8");
+                                    eprintln!("\x1b[Ginconsistent vector length 8");
                                     exit(1)
                                 }
                                 (
@@ -932,7 +962,7 @@ impl Data {
                                     ),
                                 )
                             } else {
-                                eprintln!("data type 8");
+                                eprintln!("\x1b[Gdata type 8");
                                 exit(1)
                             }
                         })
@@ -1019,16 +1049,25 @@ fn init(
         Vec<Result<String, &'static str>>,
     ) = data
         .into_iter()
-        .map(|(name, func, funcvar, _)| {
+        .map(|(name, func, funcvar, how)| {
             let x = NumStr::new(Number::from(rug::Complex::new(options.prec), None));
             let graph_type = match do_math(
                 place_var(place_var(func.clone(), "x", x.clone()), "y", x.clone()),
                 *options,
                 place_funcvar(place_funcvar(funcvar.clone(), "x", x.clone()), "y", x),
             ) {
-                Ok(Num(_)) => Type::Num,
-                Ok(Vector(v)) if v.len() == 2 => Type::Vector,
-                Ok(Vector(v)) if v.len() == 3 => Type::Vector3D,
+                Ok(Num(_)) => Type {
+                    val: Val::Num,
+                    inv: how.y && !how.x,
+                },
+                Ok(Vector(v)) if v.len() == 2 => Type {
+                    val: Val::Vector,
+                    inv: how.y && !how.x,
+                },
+                Ok(Vector(v)) if v.len() == 3 => Type {
+                    val: Val::Vector3D,
+                    inv: how.y && !how.x,
+                },
                 Ok(_) => {
                     return (Err("bad output"), Err("bad output"));
                 }
