@@ -1011,7 +1011,10 @@ fn init(
         data.push(d?)
     }
     let how = data[0].3;
-    let (a, b) = data
+    let (ae, be): (
+        Vec<Result<Plot, &'static str>>,
+        Vec<Result<String, &'static str>>,
+    ) = data
         .into_iter()
         .map(|(name, func, funcvar, _)| {
             let x = NumStr::new(Number::from(rug::Complex::new(options.prec), None));
@@ -1024,24 +1027,28 @@ fn init(
                 Ok(Vector(v)) if v.len() == 2 => Type::Vector,
                 Ok(Vector(v)) if v.len() == 3 => Type::Vector3D,
                 Ok(_) => {
-                    eprintln!("bad output");
-                    exit(1)
+                    return (Err("bad output"), Err("bad output"));
                 }
                 Err(s) => {
-                    eprintln!("{s}");
-                    exit(1)
+                    return (Err(s), Err(s));
                 }
             };
             (
-                Plot {
+                Ok(Plot {
                     func,
                     funcvar,
                     graph_type,
-                },
-                name,
+                }),
+                Ok(name),
             )
         })
         .unzip();
+    let mut a = Vec::with_capacity(ae.len());
+    let mut b = Vec::with_capacity(be.len());
+    for (i, j) in ae.into_iter().zip(be.into_iter()) {
+        a.push(i?);
+        b.push(j?);
+    }
     Ok((a, b, how))
 }
 fn compact(mut graph: Vec<Complex>) -> (Vec<Complex>, bool) {
