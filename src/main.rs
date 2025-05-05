@@ -995,8 +995,8 @@ fn init(
             .split(';')
             .map(|a| a.to_string())
             .collect::<Vec<String>>();
-        if split.len() != 1 {
-            function = split.pop().unwrap();
+        function = split.pop().unwrap();
+        if split.len() != 0 {
             for s in &split {
                 silent_commands(
                     options,
