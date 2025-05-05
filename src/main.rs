@@ -378,6 +378,53 @@ impl winit::application::ApplicationHandler for App {
     }
 }
 
+fn get_names(graph: &[GraphType], names: Vec<String>) -> Vec<Name> {
+    names
+        .into_iter()
+        .zip(graph.iter())
+        .map(|(name, data)| {
+            let (real, imag) = match data {
+                GraphType::Width(data, _, _) => (
+                    data.iter()
+                        .any(|a| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
+                    data.iter()
+                        .any(|a| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
+                ),
+                GraphType::Coord(data) => (
+                    data.iter()
+                        .any(|(_, a)| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
+                    data.iter()
+                        .any(|(_, a)| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
+                ),
+                GraphType::Width3D(data, _, _, _, _) => (
+                    data.iter()
+                        .any(|a| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
+                    data.iter()
+                        .any(|a| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
+                ),
+                GraphType::Coord3D(data) => (
+                    data.iter()
+                        .any(|(_, _, a)| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
+                    data.iter()
+                        .any(|(_, _, a)| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
+                ),
+            };
+            let show = if real && imag {
+                Show::Complex
+            } else if imag {
+                Show::Imag
+            } else {
+                Show::Real
+            };
+            Name {
+                name,
+                show,
+                vars: Vec::new(),
+            }
+        })
+        .collect()
+}
+
 impl App {
     fn new(function: String, data: kalc_lib::units::Data) -> Self {
         let kalc_lib::units::Data {
@@ -403,52 +450,7 @@ impl App {
         } else {
             data.generate_2d(options.xr.0, options.xr.1, options.samples_2d)
         };
-        let names = names
-            .into_iter()
-            .zip(graph.iter())
-            .map(|(name, data)| {
-                let (real, imag) = match data {
-                    GraphType::Width(data, _, _) => (
-                        data.iter()
-                            .any(|a| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
-                        data.iter()
-                            .any(|a| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
-                    ),
-                    GraphType::Coord(data) => (
-                        data.iter()
-                            .any(|(_, a)| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
-                        data.iter()
-                            .any(|(_, a)| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
-                    ),
-                    GraphType::Width3D(data, _, _, _, _) => (
-                        data.iter()
-                            .any(|a| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
-                        data.iter()
-                            .any(|a| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
-                    ),
-                    GraphType::Coord3D(data) => (
-                        data.iter().any(|(_, _, a)| {
-                            matches!(a, Complex::Real(_) | Complex::Complex(_, _))
-                        }),
-                        data.iter().any(|(_, _, a)| {
-                            matches!(a, Complex::Imag(_) | Complex::Complex(_, _))
-                        }),
-                    ),
-                };
-                let show = if real && imag {
-                    Show::Complex
-                } else if imag {
-                    Show::Imag
-                } else {
-                    Show::Real
-                };
-                Name {
-                    name,
-                    show,
-                    vars: Vec::new(),
-                }
-            })
-            .collect();
+        let names = get_names(&graph, names);
         if options.vxr.0 != 0.0 || options.vxr.1 != 0.0 {
             options.xr = options.vxr;
         }
@@ -527,6 +529,7 @@ impl App {
 }
 impl Data {
     fn update(&mut self, plot: &mut Graph) {
+        let mut names = None;
         if let Some(name) = plot.update_res_name() {
             let func = name
                 .iter()
@@ -540,11 +543,13 @@ impl Data {
                 .collect::<Vec<String>>()
                 .join("#");
             let how;
-            (self.data, _, how) = init(&func, &mut self.options, self.vars.clone()).unwrap_or((
+            let name;
+            (self.data, name, how) = init(&func, &mut self.options, self.vars.clone()).unwrap_or((
                 Vec::new(),
                 Vec::new(),
                 HowGraphing::default(),
             ));
+            names = Some(name);
             plot.set_is_3d(how.x && how.y && how.graph)
         }
         if let Some(bound) = plot.update_res() {
@@ -553,6 +558,9 @@ impl Data {
                     plot.clear_data();
                     let (data, complex) =
                         self.generate_2d(s, e, (p * self.options.samples_2d as f64) as usize);
+                    if let Some(names) = names {
+                        plot.names = get_names(&data, names);
+                    }
                     plot.is_complex |= complex;
                     plot.set_data(data);
                 }
@@ -570,6 +578,9 @@ impl Data {
                             self.generate_3d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x)
                         }
                     };
+                    if let Some(names) = names {
+                        plot.names = get_names(&data, names);
+                    }
                     plot.is_complex |= complex;
                     plot.set_data(data);
                 }
