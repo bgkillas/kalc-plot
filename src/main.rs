@@ -82,7 +82,7 @@ fn main() {
                 app.plot.mult = 1.0;
                 app.plot.disable_lines = true;
                 app.plot.disable_axis = true;
-                app.data.update(&mut app.plot, &mut Options::default());
+                app.data.update(&mut app.plot);
                 #[cfg(feature = "skia")]
                 {
                     let bytes = app.plot.get_png(width as u32, height as u32);
@@ -486,7 +486,7 @@ impl App {
                 _ => {}
             }
         }
-        data.update(&mut plot, &mut options);
+        data.update(&mut plot);
         Self {
             plot,
             data,
@@ -517,14 +517,14 @@ impl App {
         if let Some(buffer) = &mut self.surface_state {
             let mut buffer = buffer.buffer_mut().unwrap();
             self.plot.keybinds(&self.input_state);
-            self.data.update(&mut self.plot, &mut Options::default());
+            self.data.update(&mut self.plot);
             self.plot.update(width, height, &mut buffer);
             buffer.present().unwrap();
         }
     }
 }
 impl Data {
-    fn update(&mut self, plot: &mut Graph, options: &mut Options) {
+    fn update(&mut self, plot: &mut Graph) {
         let UpdateResult { name, bound } = plot.update_res();
         if let Some(name) = name {
             let func = name
@@ -538,7 +538,7 @@ impl Data {
                 })
                 .collect::<Vec<String>>()
                 .join("#");
-            self.data = init(&func, options, self.vars.clone())
+            self.data = init(&func, &mut self.options, self.vars.clone())
                 .map(|d| d.0)
                 .unwrap_or_default();
         }
