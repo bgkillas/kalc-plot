@@ -8,7 +8,7 @@ use kalc_lib::parse::simplify;
 use kalc_lib::units::{Colors, HowGraphing, Number, Options, Variable};
 use rayon::iter::ParallelIterator;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
-use rupl::types::{Complex, Graph, GraphType, Name, Prec, Show, UpdateResult};
+use rupl::types::{Bound, Complex, Graph, GraphType, Name, Prec, Show, UpdateResult};
 use std::env::args;
 use std::io::StdinLock;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
@@ -78,11 +78,11 @@ fn main() {
                 let event_loop = winit::event_loop::EventLoop::new().unwrap();
                 event_loop.run_app(&mut app).unwrap()
             } else {
-                app.plot.set_screen(width as f64, height as f64);
+                app.plot.set_screen(width as f64, height as f64, true);
                 app.plot.mult = 1.0;
                 app.plot.disable_lines = true;
                 app.plot.disable_axis = true;
-                app.data.update(&mut app.plot);
+                app.data.update(&mut app.plot, &mut Options::default());
                 #[cfg(feature = "skia")]
                 {
                     let bytes = app.plot.get_png(width as u32, height as u32);
@@ -141,6 +141,7 @@ struct Plot {
 struct Data {
     data: Vec<Plot>,
     options: Options,
+    vars: Vec<Variable>,
 }
 
 #[cfg(feature = "egui")]
@@ -382,8 +383,12 @@ impl App {
             vars,
             colors,
         } = data;
-        let (data, names, graphing_mode) = init(&function, &mut options, vars);
-        let data = Data { data, options };
+        let (data, names, graphing_mode) = init(&function, &mut options, vars.clone()).unwrap();
+        let mut data = Data {
+            data,
+            options,
+            vars,
+        };
         let (graph, complex) = if graphing_mode.x && graphing_mode.y {
             data.generate_3d(
                 options.xr.0,
@@ -435,7 +440,11 @@ impl App {
                 } else {
                     Show::Real
                 };
-                Name { name, show }
+                Name {
+                    name,
+                    show,
+                    vars: Vec::new(),
+                }
             })
             .collect();
         if options.vxr.0 != 0.0 || options.vxr.1 != 0.0 {
@@ -477,7 +486,7 @@ impl App {
                 _ => {}
             }
         }
-        data.update(&mut plot);
+        data.update(&mut plot, &mut options);
         Self {
             plot,
             data,
@@ -508,41 +517,59 @@ impl App {
         if let Some(buffer) = &mut self.surface_state {
             let mut buffer = buffer.buffer_mut().unwrap();
             self.plot.keybinds(&self.input_state);
-            self.data.update(&mut self.plot);
+            self.data.update(&mut self.plot, &mut Options::default());
             self.plot.update(width, height, &mut buffer);
             buffer.present().unwrap();
         }
     }
 }
 impl Data {
-    fn update(&self, plot: &mut Graph) {
-        match plot.update_res() {
-            UpdateResult::Width(s, e, Prec::Mult(p)) => {
-                plot.clear_data();
-                let (data, complex) =
-                    self.generate_2d(s, e, (p * self.options.samples_2d as f64) as usize);
-                plot.is_complex |= complex;
-                plot.set_data(data);
-            }
-            UpdateResult::Width3D(sx, sy, ex, ey, p) => {
-                plot.clear_data();
-                let (data, complex) = match p {
-                    Prec::Mult(p) => {
-                        let lx = (p * self.options.samples_3d.0 as f64) as usize;
-                        let ly = (p * self.options.samples_3d.1 as f64) as usize;
-                        self.generate_3d(sx, sy, ex, ey, lx, ly)
+    fn update(&mut self, plot: &mut Graph, options: &mut Options) {
+        let UpdateResult { name, bound } = plot.update_res();
+        if let Some(name) = name {
+            let func = name
+                .iter()
+                .map(|n| {
+                    if n.vars.is_empty() {
+                        n.name.clone()
+                    } else {
+                        format!("{};{}", n.vars.join(";"), n.name)
                     }
-                    Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x, y),
-                    Prec::Slice(p) => {
-                        let l = (p * self.options.samples_2d as f64) as usize;
-                        self.generate_3d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x)
-                    }
-                };
-                plot.is_complex |= complex;
-                plot.set_data(data);
+                })
+                .collect::<Vec<String>>()
+                .join("#");
+            self.data = init(&func, options, self.vars.clone())
+                .map(|d| d.0)
+                .unwrap_or_default();
+        }
+        if let Some(bound) = bound {
+            match bound {
+                Bound::Width(s, e, Prec::Mult(p)) => {
+                    plot.clear_data();
+                    let (data, complex) =
+                        self.generate_2d(s, e, (p * self.options.samples_2d as f64) as usize);
+                    plot.is_complex |= complex;
+                    plot.set_data(data);
+                }
+                Bound::Width3D(sx, sy, ex, ey, p) => {
+                    plot.clear_data();
+                    let (data, complex) = match p {
+                        Prec::Mult(p) => {
+                            let lx = (p * self.options.samples_3d.0 as f64) as usize;
+                            let ly = (p * self.options.samples_3d.1 as f64) as usize;
+                            self.generate_3d(sx, sy, ex, ey, lx, ly)
+                        }
+                        Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x, y),
+                        Prec::Slice(p) => {
+                            let l = (p * self.options.samples_2d as f64) as usize;
+                            self.generate_3d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x)
+                        }
+                    };
+                    plot.is_complex |= complex;
+                    plot.set_data(data);
+                }
+                Bound::Width(_, _, _) => unreachable!(),
             }
-            UpdateResult::Width(_, _, _) => unreachable!(),
-            UpdateResult::None => {}
         }
     }
     fn generate_3d(
@@ -921,7 +948,7 @@ fn init(
     function: &str,
     options: &mut Options,
     mut vars: Vec<Variable>,
-) -> (Vec<Plot>, Vec<String>, HowGraphing) {
+) -> Result<(Vec<Plot>, Vec<String>, HowGraphing), &'static str> {
     let mut function = function.to_string();
     {
         let mut split = function
@@ -938,45 +965,51 @@ fn init(
                         .collect::<Vec<char>>(),
                 );
                 if s.contains('=') {
-                    if let Err(s) = set_commands_or_vars(
+                    set_commands_or_vars(
                         &mut Colors::default(),
                         options,
                         &mut vars,
                         &s.chars().collect::<Vec<char>>(),
-                    ) {
-                        eprintln!("{s}");
-                        exit(1)
-                    }
+                    )?
                 }
             }
         }
     }
-    let data = function
-        .split('#')
-        .collect::<Vec<&str>>()
-        .into_par_iter()
-        .map(|function| {
-            match kalc_lib::parse::input_var(
-                function,
-                &vars,
-                &mut Vec::new(),
-                &mut 0,
-                *options,
-                false,
-                0,
-                Vec::new(),
-                false,
-                &mut Vec::new(),
-                None,
-            ) {
-                Ok((func, funcvar, how, _, _)) => (function.to_string(), func, funcvar, how),
-                Err(s) => {
-                    eprintln!("{s}");
-                    exit(1)
+    let dataerr =
+        function
+            .split('#')
+            .collect::<Vec<&str>>()
+            .into_par_iter()
+            .map(|function| {
+                match kalc_lib::parse::input_var(
+                    function,
+                    &vars,
+                    &mut Vec::new(),
+                    &mut 0,
+                    *options,
+                    false,
+                    0,
+                    Vec::new(),
+                    false,
+                    &mut Vec::new(),
+                    None,
+                ) {
+                    Ok((func, funcvar, how, _, _)) => {
+                        Ok((function.to_string(), func, funcvar, how))
+                    }
+                    Err(s) => Err(s),
                 }
-            }
-        })
-        .collect::<Vec<(String, Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing)>>();
+            })
+            .collect::<Vec<
+                Result<
+                    (String, Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing),
+                    &'static str,
+                >,
+            >>();
+    let mut data = Vec::with_capacity(dataerr.len());
+    for d in dataerr {
+        data.push(d?)
+    }
     let how = data[0].3;
     let (a, b) = data
         .into_iter()
@@ -1009,7 +1042,7 @@ fn init(
             )
         })
         .unzip();
-    (a, b, how)
+    Ok((a, b, how))
 }
 fn compact(mut graph: Vec<Complex>) -> (Vec<Complex>, bool) {
     let complex = graph.iter().any(|a| {
