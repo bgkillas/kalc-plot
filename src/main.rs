@@ -8,7 +8,7 @@ use kalc_lib::parse::simplify;
 use kalc_lib::units::{Colors, HowGraphing, Number, Options, Variable};
 use rayon::iter::ParallelIterator;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
-use rupl::types::{Bound, Complex, Graph, GraphType, Name, Prec, Show, UpdateResult};
+use rupl::types::{Bound, Complex, Graph, GraphType, Name, Prec, Show};
 use std::env::args;
 use std::io::StdinLock;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
@@ -525,8 +525,7 @@ impl App {
 }
 impl Data {
     fn update(&mut self, plot: &mut Graph) {
-        let UpdateResult { name, bound } = plot.update_res();
-        if let Some(name) = name {
+        if let Some(name) = plot.update_res_name() {
             let func = name
                 .iter()
                 .map(|n| {
@@ -538,11 +537,15 @@ impl Data {
                 })
                 .collect::<Vec<String>>()
                 .join("#");
-            self.data = init(&func, &mut self.options, self.vars.clone())
-                .map(|d| d.0)
-                .unwrap_or_default();
+            let how;
+            (self.data, _, how) = init(&func, &mut self.options, self.vars.clone()).unwrap_or((
+                Vec::new(),
+                Vec::new(),
+                HowGraphing::default(),
+            ));
+            plot.set_is_3d(how.x && how.y && !how.graph)
         }
-        if let Some(bound) = bound {
+        if let Some(bound) = plot.update_res() {
             match bound {
                 Bound::Width(s, e, Prec::Mult(p)) => {
                     plot.clear_data();
