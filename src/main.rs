@@ -996,59 +996,48 @@ fn init(
             .map(|a| a.to_string())
             .collect::<Vec<String>>();
         function = split.pop().unwrap();
-        if split.is_empty() {
-            for s in &split {
-                silent_commands(
+        for s in &split {
+            silent_commands(
+                options,
+                &s.chars()
+                    .filter(|&c| !c.is_whitespace())
+                    .collect::<Vec<char>>(),
+            );
+            if s.contains('=') {
+                let _ = set_commands_or_vars(
+                    &mut Colors::default(),
                     options,
-                    &s.chars()
-                        .filter(|&c| !c.is_whitespace())
-                        .collect::<Vec<char>>(),
+                    &mut vars,
+                    &s.chars().collect::<Vec<char>>(),
                 );
-                if s.contains('=') {
-                    set_commands_or_vars(
-                        &mut Colors::default(),
-                        options,
-                        &mut vars,
-                        &s.chars().collect::<Vec<char>>(),
-                    )?
-                }
             }
         }
     }
-    let dataerr =
-        function
-            .split('#')
-            .collect::<Vec<&str>>()
-            .into_par_iter()
-            .map(|function| {
-                match kalc_lib::parse::input_var(
-                    function,
-                    &vars,
-                    &mut Vec::new(),
-                    &mut 0,
-                    *options,
-                    false,
-                    0,
-                    Vec::new(),
-                    false,
-                    &mut Vec::new(),
-                    None,
-                ) {
-                    Ok((func, funcvar, how, _, _)) => {
-                        Ok((function.to_string(), func, funcvar, how))
-                    }
-                    Err(s) => Err(s),
-                }
-            })
-            .collect::<Vec<
-                Result<
-                    (String, Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing),
-                    &'static str,
-                >,
-            >>();
-    let mut data = Vec::with_capacity(dataerr.len());
-    for d in dataerr {
-        data.push(d?)
+    let data = function
+        .split('#')
+        .collect::<Vec<&str>>()
+        .into_par_iter()
+        .filter_map(|function| {
+            match kalc_lib::parse::input_var(
+                function,
+                &vars,
+                &mut Vec::new(),
+                &mut 0,
+                *options,
+                false,
+                0,
+                Vec::new(),
+                false,
+                &mut Vec::new(),
+                None,
+            ) {
+                Ok((func, funcvar, how, _, _)) => Some((function.to_string(), func, funcvar, how)),
+                Err(_) => None,
+            }
+        })
+        .collect::<Vec<(String, Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing)>>();
+    if data.is_empty() {
+        return Err("no data");
     }
     let how = data[0].3;
     if data
@@ -1057,12 +1046,9 @@ fn init(
     {
         return Err("differing data");
     }
-    let (ae, be): (
-        Vec<Result<Plot, &'static str>>,
-        Vec<Result<String, &'static str>>,
-    ) = data
+    let (a, b): (Vec<Plot>, Vec<String>) = data
         .into_iter()
-        .map(|(name, func, funcvar, how)| {
+        .filter_map(|(name, func, funcvar, how)| {
             let x = NumStr::new(Number::from(rug::Complex::new(options.prec), None));
             let graph_type = match do_math(
                 place_var(place_var(func.clone(), "x", x.clone()), "y", x.clone()),
@@ -1081,29 +1067,20 @@ fn init(
                     val: Val::Vector3D,
                     inv: how.y && !how.x,
                 },
-                Ok(_) => {
-                    return (Err("bad output"), Err("bad output"));
-                }
-                Err(s) => {
-                    return (Err(s), Err(s));
+                Ok(_) | Err(_) => {
+                    return None;
                 }
             };
-            (
-                Ok(Plot {
+            Some((
+                Plot {
                     func,
                     funcvar,
                     graph_type,
-                }),
-                Ok(name),
-            )
+                },
+                name,
+            ))
         })
         .unzip();
-    let mut a = Vec::with_capacity(ae.len());
-    let mut b = Vec::with_capacity(be.len());
-    for (i, j) in ae.into_iter().zip(be.into_iter()) {
-        a.push(i?);
-        b.push(j?);
-    }
     let mut v = Vec::with_capacity(b.len());
     v.push((split, b[0].clone()));
     for b in b[1..].iter() {
