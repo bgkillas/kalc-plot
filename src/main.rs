@@ -996,7 +996,7 @@ fn init(
             .map(|a| a.to_string())
             .collect::<Vec<String>>();
         function = split.pop().unwrap();
-        if split.len() != 0 {
+        if split.is_empty() {
             for s in &split {
                 silent_commands(
                     options,
@@ -1051,6 +1051,12 @@ fn init(
         data.push(d?)
     }
     let how = data[0].3;
+    if data
+        .iter()
+        .any(|(_, _, _, a)| (a.x && a.y) != (how.x && how.y))
+    {
+        return Err("differing data");
+    }
     let (ae, be): (
         Vec<Result<Plot, &'static str>>,
         Vec<Result<String, &'static str>>,
