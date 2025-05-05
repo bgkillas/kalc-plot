@@ -543,7 +543,7 @@ impl Data {
                 Vec::new(),
                 HowGraphing::default(),
             ));
-            plot.set_is_3d(how.x && how.y && !how.graph)
+            plot.set_is_3d(how.x && how.y && how.graph)
         }
         if let Some(bound) = plot.update_res() {
             match bound {
