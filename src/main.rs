@@ -266,7 +266,9 @@ impl winit::application::ApplicationHandler for App {
                 }
                 if self.input_state.pointer_down
                     || (!self.plot.is_3d
-                        && (!self.plot.disable_coord || self.plot.ruler_pos.is_some()))
+                        && (!self.plot.disable_coord
+                            || self.plot.ruler_pos.is_some()
+                            || self.plot.draw_side))
                 {
                     s.window().request_redraw();
                 }
