@@ -508,6 +508,7 @@ impl App {
             .frame(egui::Frame::default().fill(egui::Color32::from_rgb(255, 255, 255)))
             .show(ctx, |ui| {
                 self.plot.keybinds(ui);
+                self.plot.set_screen(width as f64, height as f64, true);
                 self.data.update(&mut self.plot);
                 self.plot.update(ctx, ui);
             });
@@ -517,6 +518,7 @@ impl App {
         if let Some(buffer) = &mut self.surface_state {
             let mut buffer = buffer.buffer_mut().unwrap();
             self.plot.keybinds(&self.input_state);
+            self.plot.set_screen(width as f64, height as f64, true);
             self.data.update(&mut self.plot);
             self.plot.update(width, height, &mut buffer);
             buffer.present().unwrap();
