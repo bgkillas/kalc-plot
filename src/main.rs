@@ -510,7 +510,9 @@ impl App {
             .frame(egui::Frame::default().fill(egui::Color32::from_rgb(255, 255, 255)))
             .show(ctx, |ui| {
                 self.plot.keybinds(ui);
-                self.plot.set_screen(width as f64, height as f64, true);
+                let rect = ctx.available_rect();
+                self.plot
+                    .set_screen(rect.width() as f64, rect.height() as f64, true);
                 self.data.update(&mut self.plot);
                 self.plot.update(ctx, ui);
             });
