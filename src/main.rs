@@ -564,8 +564,10 @@ impl Data {
                                 a.show = b.show
                             }
                         }
+                        plot.is_complex = complex;
+                    } else {
+                        plot.is_complex |= complex;
                     }
-                    plot.is_complex |= complex;
                     plot.set_data(data);
                 }
                 Bound::Width3D(sx, sy, ex, ey, p) => {
@@ -589,8 +591,10 @@ impl Data {
                                 a.show = b.show
                             }
                         }
+                        plot.is_complex = complex;
+                    } else {
+                        plot.is_complex |= complex;
                     }
-                    plot.is_complex |= complex;
                     plot.set_data(data);
                 }
                 Bound::Width(_, _, _) => unreachable!(),
