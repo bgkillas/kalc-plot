@@ -554,7 +554,12 @@ impl Data {
                     let (data, complex) =
                         self.generate_2d(s, e, (p * self.options.samples_2d as f64) as usize);
                     if let Some(names) = names {
-                        plot.names = get_names(&data, names);
+                        let names = get_names(&data, names);
+                        if names.len() == plot.names.len() {
+                            for (a, b) in plot.names.iter_mut().zip(names.iter()) {
+                                a.show = b.show
+                            }
+                        }
                     }
                     plot.is_complex |= complex;
                     plot.set_data(data);
@@ -574,7 +579,12 @@ impl Data {
                         }
                     };
                     if let Some(names) = names {
-                        plot.names = get_names(&data, names);
+                        let names = get_names(&data, names);
+                        if names.len() == plot.names.len() {
+                            for (a, b) in plot.names.iter_mut().zip(names.iter()) {
+                                a.show = b.show
+                            }
+                        }
                     }
                     plot.is_complex |= complex;
                     plot.set_data(data);
@@ -1081,6 +1091,9 @@ fn init(
             ))
         })
         .unzip();
+    if b.is_empty() {
+        return Err("no data2");
+    }
     let mut v = Vec::with_capacity(b.len());
     v.push((split, b[0].clone()));
     for b in b[1..].iter() {
