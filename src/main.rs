@@ -17,91 +17,90 @@ use std::process::exit;
 //TODO {x/2, x^2} does not graph off of var
 fn main() {
     let args = args().collect::<Vec<String>>();
-    if let Some(function) = args.last() {
-        let data = if args.len() > 2 && args[1] == "-d" {
-            let stdin = std::io::stdin().lock();
-            let mut data =
-                serde_json::from_reader::<StdinLock, kalc_lib::units::Data>(stdin).unwrap();
-            data.options.prec = data.options.graph_prec;
-            data
-        } else {
-            let options = Options {
-                prec: 128,
-                graph_prec: 128,
-                graphing: true,
-                ..Options::default()
-            };
-            kalc_lib::units::Data {
-                vars: get_vars(options),
-                options,
-                colors: Default::default(),
-            }
+    let s = String::new();
+    let function = args.last().unwrap_or(&s);
+    let data = if args.len() > 2 && args[1] == "-d" {
+        let stdin = std::io::stdin().lock();
+        let mut data = serde_json::from_reader::<StdinLock, kalc_lib::units::Data>(stdin).unwrap();
+        data.options.prec = data.options.graph_prec;
+        data
+    } else {
+        let options = Options {
+            prec: 128,
+            graph_prec: 128,
+            graphing: true,
+            ..Options::default()
         };
-        #[cfg(feature = "egui")]
-        {
-            eframe::run_native(
-                &function.clone(),
-                eframe::NativeOptions {
-                    ..Default::default()
-                },
-                Box::new(|cc| {
-                    let mut fonts = egui::FontDefinitions::default();
-                    fonts.font_data.insert(
-                        "notosans".to_owned(),
-                        std::sync::Arc::new(egui::FontData::from_static(include_bytes!(
-                            "../notosans.ttf"
-                        ))),
-                    );
-                    fonts
-                        .families
-                        .get_mut(&egui::FontFamily::Proportional)
-                        .unwrap()
-                        .insert(0, "notosans".to_owned());
-                    fonts
-                        .families
-                        .get_mut(&egui::FontFamily::Monospace)
-                        .unwrap()
-                        .insert(0, "notosans".to_owned());
-                    cc.egui_ctx.set_fonts(fonts);
-                    Ok(Box::new(App::new(function.to_string(), data)))
-                }),
-            )
-            .unwrap();
+        kalc_lib::units::Data {
+            vars: get_vars(options),
+            options,
+            colors: Default::default(),
         }
-        #[cfg(any(feature = "skia", feature = "tiny-skia"))]
-        {
-            let f = data.colors.graphtofile.clone();
-            let (width, height) = data.options.window_size;
-            let mut app = App::new(function.to_string(), data);
-            if f.is_empty() {
-                let event_loop = winit::event_loop::EventLoop::new().unwrap();
-                event_loop.run_app(&mut app).unwrap()
-            } else {
-                app.plot.set_screen(width as f64, height as f64, true);
-                app.plot.mult = 1.0;
-                app.plot.disable_lines = true;
-                app.plot.disable_axis = true;
-                app.data.update(&mut app.plot);
-                #[cfg(feature = "skia")]
-                {
-                    let bytes = app.plot.get_png(width as u32, height as u32);
-                    if f == "-" {
-                        std::io::stdout()
-                            .lock()
-                            .write_all(bytes.as_bytes())
-                            .unwrap()
-                    } else {
-                        std::fs::write(f, bytes.as_bytes()).unwrap()
-                    }
+    };
+    #[cfg(feature = "egui")]
+    {
+        eframe::run_native(
+            &function.clone(),
+            eframe::NativeOptions {
+                ..Default::default()
+            },
+            Box::new(|cc| {
+                let mut fonts = egui::FontDefinitions::default();
+                fonts.font_data.insert(
+                    "notosans".to_owned(),
+                    std::sync::Arc::new(egui::FontData::from_static(include_bytes!(
+                        "../notosans.ttf"
+                    ))),
+                );
+                fonts
+                    .families
+                    .get_mut(&egui::FontFamily::Proportional)
+                    .unwrap()
+                    .insert(0, "notosans".to_owned());
+                fonts
+                    .families
+                    .get_mut(&egui::FontFamily::Monospace)
+                    .unwrap()
+                    .insert(0, "notosans".to_owned());
+                cc.egui_ctx.set_fonts(fonts);
+                Ok(Box::new(App::new(function.to_string(), data)))
+            }),
+        )
+        .unwrap();
+    }
+    #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+    {
+        let f = data.colors.graphtofile.clone();
+        let (width, height) = data.options.window_size;
+        let mut app = App::new(function.to_string(), data);
+        if f.is_empty() {
+            let event_loop = winit::event_loop::EventLoop::new().unwrap();
+            event_loop.run_app(&mut app).unwrap()
+        } else {
+            app.plot.set_screen(width as f64, height as f64, true);
+            app.plot.mult = 1.0;
+            app.plot.disable_lines = true;
+            app.plot.disable_axis = true;
+            app.data.update(&mut app.plot);
+            #[cfg(feature = "skia")]
+            {
+                let bytes = app.plot.get_png(width as u32, height as u32);
+                if f == "-" {
+                    std::io::stdout()
+                        .lock()
+                        .write_all(bytes.as_bytes())
+                        .unwrap()
+                } else {
+                    std::fs::write(f, bytes.as_bytes()).unwrap()
                 }
-                #[cfg(feature = "tiny-skia")]
-                {
-                    let bytes = &app.plot.get_png(width as u32, height as u32);
-                    if f == "-" {
-                        std::io::stdout().lock().write_all(&bytes).unwrap()
-                    } else {
-                        std::fs::write(f, &bytes).unwrap()
-                    }
+            }
+            #[cfg(feature = "tiny-skia")]
+            {
+                let bytes = &app.plot.get_png(width as u32, height as u32);
+                if f == "-" {
+                    std::io::stdout().lock().write_all(&bytes).unwrap()
+                } else {
+                    std::fs::write(f, &bytes).unwrap()
                 }
             }
         }
@@ -430,7 +429,14 @@ impl App {
             vars,
             colors,
         } = data;
-        let (data, names, graphing_mode) = init(&function, &mut options, vars.clone()).unwrap();
+        let mut side = false;
+        let (data, names, graphing_mode) =
+            if let Ok(a) = init(&function, &mut options, vars.clone()) {
+                a
+            } else {
+                side = true;
+                Default::default()
+            };
         let mut data = Data {
             data,
             options,
@@ -456,6 +462,7 @@ impl App {
             options.yr = options.vyr;
         }
         let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);
+        plot.draw_side = side;
         plot.is_complex = complex;
         plot.mult = 1.0 / 16.0;
         plot.main_colors = colors
