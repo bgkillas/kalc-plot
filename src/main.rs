@@ -520,7 +520,9 @@ impl App {
                 let rect = ctx.available_rect();
                 self.plot
                     .set_screen(rect.width() as f64, rect.height() as f64, true);
-                self.data.update(&mut self.plot);
+                if let Some(n) = self.data.update(&mut self.plot) {
+                    self.name = n
+                };
                 self.plot.update(ctx, ui);
             });
     }
@@ -530,23 +532,27 @@ impl App {
             let mut buffer = buffer.buffer_mut().unwrap();
             self.plot.keybinds(&self.input_state);
             self.plot.set_screen(width as f64, height as f64, true);
-            self.data.update(&mut self.plot);
+            if let Some(n) = self.data.update(&mut self.plot) {
+                self.name = n;
+            };
             self.plot.update(width, height, &mut buffer);
             buffer.present().unwrap();
         }
     }
 }
 impl Data {
-    fn update(&mut self, plot: &mut Graph) {
+    fn update(&mut self, plot: &mut Graph) -> Option<String> {
         let mut names = None;
+        let mut ret = None;
         if let Some(name) = plot.update_res_name() {
             let func = name
                 .iter()
                 .map(|n| {
-                    if n.vars.is_empty() {
+                    let v: Vec<String> = n.vars.iter().filter(|a| !a.is_empty()).cloned().collect();
+                    if v.is_empty() {
                         n.name.clone()
                     } else {
-                        format!("{};{}", n.vars.join(";"), n.name)
+                        format!("{};{}", v.join(";"), n.name)
                     }
                 })
                 .collect::<Vec<String>>()
@@ -558,7 +564,8 @@ impl Data {
             if !new_name.is_empty() || name.is_empty() {
                 names = Some(new_name);
             }
-            plot.set_is_3d(how.x && how.y && how.graph)
+            plot.set_is_3d(how.x && how.y && how.graph);
+            ret = Some(func);
         }
         if let Some(bound) = plot.update_res() {
             match bound {
@@ -609,6 +616,7 @@ impl Data {
                 Bound::Width(_, _, _) => unreachable!(),
             }
         }
+        ret
     }
     fn generate_3d(
         &self,
@@ -1009,44 +1017,56 @@ impl Data {
         (data.into_iter().map(|(a, _)| a).collect(), complex)
     }
 }
+fn take_vars(
+    function: &mut String,
+    options: &mut Options,
+    vars: &mut Vec<Variable>,
+) -> Vec<String> {
+    let mut s = function
+        .split('#')
+        .map(|a| a.to_string())
+        .collect::<Vec<String>>();
+    let mut split = s
+        .remove(0)
+        .split(';')
+        .map(|a| a.to_string())
+        .collect::<Vec<String>>();
+    *function = split.pop().unwrap();
+    for s in &split {
+        silent_commands(
+            options,
+            &s.chars()
+                .filter(|&c| !c.is_whitespace())
+                .collect::<Vec<char>>(),
+        );
+        if s.contains('=') {
+            let _ = set_commands_or_vars(
+                &mut Colors::default(),
+                options,
+                vars,
+                &s.chars().collect::<Vec<char>>(),
+            );
+        }
+    }
+    if !s.is_empty() {
+        *function = format!("{function}#{}", s.join("#"))
+    }
+    split
+}
 #[allow(clippy::type_complexity)]
 fn init(
     function: &str,
     options: &mut Options,
     mut vars: Vec<Variable>,
 ) -> Result<(Vec<Plot>, Vec<(Vec<String>, String)>, HowGraphing), &'static str> {
-    let mut split;
     let mut function = function.to_string();
-    {
-        split = function
-            .split(';')
-            .map(|a| a.to_string())
-            .collect::<Vec<String>>();
-        function = split.pop().unwrap();
-        for s in &split {
-            silent_commands(
-                options,
-                &s.chars()
-                    .filter(|&c| !c.is_whitespace())
-                    .collect::<Vec<char>>(),
-            );
-            if s.contains('=') {
-                let _ = set_commands_or_vars(
-                    &mut Colors::default(),
-                    options,
-                    &mut vars,
-                    &s.chars().collect::<Vec<char>>(),
-                );
-            }
-        }
-    }
-    let data = function
-        .split('#')
-        .collect::<Vec<&str>>()
-        .into_par_iter()
-        .filter_map(|function| {
-            match kalc_lib::parse::input_var(
-                function,
+    let mut split = vec![take_vars(&mut function, options, &mut vars)];
+    let data = if function.contains(';') {
+        let mut data = Vec::new();
+        for mut function in function.split('#').map(|a| a.to_string()) {
+            split.push(take_vars(&mut function, options, &mut vars));
+            if let Ok((func, funcvar, how, _, _)) = kalc_lib::parse::input_var(
+                &function,
                 &vars,
                 &mut Vec::new(),
                 &mut 0,
@@ -1058,11 +1078,37 @@ fn init(
                 &mut Vec::new(),
                 None,
             ) {
-                Ok((func, funcvar, how, _, _)) => Some((function.to_string(), func, funcvar, how)),
-                Err(_) => None,
+                data.push((function, func, funcvar, how))
             }
-        })
-        .collect::<Vec<(String, Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing)>>();
+        }
+        data
+    } else {
+        function
+            .split('#')
+            .collect::<Vec<&str>>()
+            .into_par_iter()
+            .filter_map(|function| {
+                match kalc_lib::parse::input_var(
+                    function,
+                    &vars,
+                    &mut Vec::new(),
+                    &mut 0,
+                    *options,
+                    false,
+                    0,
+                    Vec::new(),
+                    false,
+                    &mut Vec::new(),
+                    None,
+                ) {
+                    Ok((func, funcvar, how, _, _)) => {
+                        Some((function.to_string(), func, funcvar, how))
+                    }
+                    Err(_) => None,
+                }
+            })
+            .collect::<Vec<(String, Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing)>>()
+    };
     if data.is_empty() {
         return Err("no data");
     }
@@ -1112,9 +1158,11 @@ fn init(
         return Err("no data2");
     }
     let mut v = Vec::with_capacity(b.len());
-    v.push((split, b[0].clone()));
-    for b in b[1..].iter() {
-        v.push((Vec::new(), b.to_string()));
+    for _ in split.len()..b.len() {
+        split.push(Vec::new());
+    }
+    for (b, a) in b.iter().zip(split.into_iter()) {
+        v.push((a, b.to_string()));
     }
     Ok((a, v, how))
 }
