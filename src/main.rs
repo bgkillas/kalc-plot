@@ -520,9 +520,7 @@ impl App {
                 let rect = ctx.available_rect();
                 self.plot
                     .set_screen(rect.width() as f64, rect.height() as f64, true);
-                if let Some(n) = self.data.update(&mut self.plot) {
-                    self.name = n
-                };
+                self.data.update(&mut self.plot);
                 self.plot.update(ctx, ui);
             });
     }
