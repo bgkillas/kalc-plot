@@ -138,6 +138,7 @@ struct App {
 struct Type {
     val: Val,
     inv: bool,
+    constant: Option<Complex>,
 }
 enum Val {
     Num,
@@ -430,6 +431,10 @@ fn get_names(graph: &[GraphType], names: Vec<(Vec<String>, String)>) -> Vec<Name
                         .any(|(_, _, a)| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
                     data.iter()
                         .any(|(_, _, a)| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
+                ),
+                GraphType::Constant(c) => (
+                    matches!(c, Complex::Real(_) | Complex::Complex(_, _)),
+                    matches!(c, Complex::Imag(_) | Complex::Complex(_, _)),
                 ),
             };
             let show = if real && imag {
@@ -834,39 +839,46 @@ impl Data {
                     }
                 })
                 .map(|data| {
-                    let mut modified = place_var(data.func.clone(), "y", y.clone());
-                    let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y.clone());
-                    simplify(&mut modified, &mut modifiedvars, self.options);
-                    match data.graph_type.val {
-                        Val::Num => {
-                            let data = (0..=lenx)
-                                .into_par_iter()
-                                .map(|i| {
-                                    let x = startx + i as f64 * dx;
-                                    let x = NumStr::new(Number::from(
-                                        rug::Complex::with_val(self.options.prec, x),
-                                        None,
-                                    ));
-                                    if let Ok(Num(n)) = do_math(
-                                        place_var(modified.clone(), "x", x.clone()),
-                                        self.options,
-                                        place_funcvar(modifiedvars.clone(), "x", x),
-                                    ) {
-                                        Complex::Complex(
-                                            n.number.real().to_f64(),
-                                            n.number.imag().to_f64(),
-                                        )
-                                    } else {
-                                        eprintln!("\x1b[Gdata type 4");
-                                        exit(1)
-                                    }
-                                })
-                                .collect::<Vec<Complex>>();
-                            let (a, b) = compact(data);
-                            (GraphType::Width3D(a, startx, starty, endx, endy), b)
+                    if let Some(c) = data.graph_type.constant {
+                        (
+                            GraphType::Constant(c),
+                            matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
+                        )
+                    } else {
+                        let mut modified = place_var(data.func.clone(), "y", y.clone());
+                        let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y.clone());
+                        simplify(&mut modified, &mut modifiedvars, self.options);
+                        match data.graph_type.val {
+                            Val::Num => {
+                                let data = (0..=lenx)
+                                    .into_par_iter()
+                                    .map(|i| {
+                                        let x = startx + i as f64 * dx;
+                                        let x = NumStr::new(Number::from(
+                                            rug::Complex::with_val(self.options.prec, x),
+                                            None,
+                                        ));
+                                        if let Ok(Num(n)) = do_math(
+                                            place_var(modified.clone(), "x", x.clone()),
+                                            self.options,
+                                            place_funcvar(modifiedvars.clone(), "x", x),
+                                        ) {
+                                            Complex::Complex(
+                                                n.number.real().to_f64(),
+                                                n.number.imag().to_f64(),
+                                            )
+                                        } else {
+                                            eprintln!("\x1b[Gdata type 4");
+                                            exit(1)
+                                        }
+                                    })
+                                    .collect::<Vec<Complex>>();
+                                let (a, b) = compact(data);
+                                (GraphType::Width3D(a, startx, starty, endx, endy), b)
+                            }
+                            Val::Vector => unreachable!(),
+                            Val::Vector3D => unreachable!(),
                         }
-                        Val::Vector => unreachable!(),
-                        Val::Vector3D => unreachable!(),
                     }
                 })
                 .collect::<Vec<(GraphType, bool)>>()
@@ -886,39 +898,46 @@ impl Data {
                     }
                 })
                 .map(|data| {
-                    let mut modified = place_var(data.func.clone(), "x", x.clone());
-                    let mut modifiedvars = place_funcvar(data.funcvar.clone(), "x", x.clone());
-                    simplify(&mut modified, &mut modifiedvars, self.options);
-                    match data.graph_type.val {
-                        Val::Num => {
-                            let data = (0..=leny)
-                                .into_par_iter()
-                                .map(|i| {
-                                    let y = starty + i as f64 * dy;
-                                    let y = NumStr::new(Number::from(
-                                        rug::Complex::with_val(self.options.prec, y),
-                                        None,
-                                    ));
-                                    if let Ok(Num(n)) = do_math(
-                                        place_var(modified.clone(), "y", y.clone()),
-                                        self.options,
-                                        place_funcvar(modifiedvars.clone(), "y", y),
-                                    ) {
-                                        Complex::Complex(
-                                            n.number.real().to_f64(),
-                                            n.number.imag().to_f64(),
-                                        )
-                                    } else {
-                                        eprintln!("\x1b[Gdata type 5");
-                                        exit(1)
-                                    }
-                                })
-                                .collect::<Vec<Complex>>();
-                            let (a, b) = compact(data);
-                            (GraphType::Width3D(a, startx, starty, endx, endy), b)
+                    if let Some(c) = data.graph_type.constant {
+                        (
+                            GraphType::Constant(c),
+                            matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
+                        )
+                    } else {
+                        let mut modified = place_var(data.func.clone(), "x", x.clone());
+                        let mut modifiedvars = place_funcvar(data.funcvar.clone(), "x", x.clone());
+                        simplify(&mut modified, &mut modifiedvars, self.options);
+                        match data.graph_type.val {
+                            Val::Num => {
+                                let data = (0..=leny)
+                                    .into_par_iter()
+                                    .map(|i| {
+                                        let y = starty + i as f64 * dy;
+                                        let y = NumStr::new(Number::from(
+                                            rug::Complex::with_val(self.options.prec, y),
+                                            None,
+                                        ));
+                                        if let Ok(Num(n)) = do_math(
+                                            place_var(modified.clone(), "y", y.clone()),
+                                            self.options,
+                                            place_funcvar(modifiedvars.clone(), "y", y),
+                                        ) {
+                                            Complex::Complex(
+                                                n.number.real().to_f64(),
+                                                n.number.imag().to_f64(),
+                                            )
+                                        } else {
+                                            eprintln!("\x1b[Gdata type 5");
+                                            exit(1)
+                                        }
+                                    })
+                                    .collect::<Vec<Complex>>();
+                                let (a, b) = compact(data);
+                                (GraphType::Width3D(a, startx, starty, endx, endy), b)
+                            }
+                            Val::Vector => unreachable!(),
+                            Val::Vector3D => unreachable!(),
                         }
-                        Val::Vector => unreachable!(),
-                        Val::Vector3D => unreachable!(),
                     }
                 })
                 .collect::<Vec<(GraphType, bool)>>()
@@ -939,7 +958,12 @@ impl Data {
             })
             .map(|data| match data.graph_type.val {
                 Val::Num => {
-                    if data.graph_type.inv {
+                    if let Some(c) = data.graph_type.constant {
+                        (
+                            GraphType::Constant(c),
+                            matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
+                        )
+                    } else if data.graph_type.inv {
                         let data = (0..=len)
                             .into_par_iter()
                             .map(|i| {
@@ -1160,10 +1184,13 @@ fn init(
     if data.is_empty() {
         return Err("no data");
     }
-    let how = data[0].3;
+    let how = data
+        .iter()
+        .find_map(|d| if d.3.graph { Some(d.3) } else { None })
+        .unwrap_or(data[0].3);
     if data
         .iter()
-        .any(|(_, _, _, a)| (a.x && a.y) != (how.x && how.y))
+        .any(|(_, _, _, a)| (a.x && a.y) != (how.x && how.y) && how.graph)
     {
         return Err("differing data");
     }
@@ -1176,17 +1203,25 @@ fn init(
                 *options,
                 place_funcvar(place_funcvar(funcvar.clone(), "x", x.clone()), "y", x),
             ) {
+                Ok(Num(c)) if !how.graph => Type {
+                    val: Val::Num,
+                    inv: false,
+                    constant: Some(compact_constant(c.number)),
+                },
                 Ok(Num(_)) => Type {
                     val: Val::Num,
                     inv: how.y && !how.x,
+                    constant: None,
                 },
                 Ok(Vector(v)) if v.len() == 2 => Type {
                     val: Val::Vector,
                     inv: how.y && !how.x,
+                    constant: None,
                 },
                 Ok(Vector(v)) if v.len() == 3 => Type {
                     val: Val::Vector3D,
                     inv: how.y && !how.x,
+                    constant: None,
                 },
                 Ok(_) | Err(_) => {
                     return None;
@@ -1213,6 +1248,14 @@ fn init(
         v.push((a, b.to_string()));
     }
     Ok((a, v, how))
+}
+fn compact_constant(c: rug::Complex) -> Complex {
+    match (c.real().is_zero(), c.imag().is_zero()) {
+        (true, true) => Complex::Real(0.0),
+        (false, true) => Complex::Real(c.real().to_f64()),
+        (true, false) => Complex::Imag(c.imag().to_f64()),
+        (false, false) => Complex::Complex(c.real().to_f64(), c.imag().to_f64()),
+    }
 }
 fn compact(mut graph: Vec<Complex>) -> (Vec<Complex>, bool) {
     let complex = graph.iter().any(|a| {
