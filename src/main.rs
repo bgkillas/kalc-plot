@@ -12,6 +12,7 @@ use rayon::iter::ParallelIterator;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
 use rupl::types::{Bound, Complex, Graph, GraphType, Name, Prec, Show};
 use std::env::args;
+#[cfg(feature = "serde")]
 use std::io::StdinLock;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use std::io::Write;
@@ -21,11 +22,19 @@ fn main() {
     let args = args().collect::<Vec<String>>();
     let s = String::new();
     let function = args.last().unwrap_or(&s);
-    let data = if args.len() > 2 && args[1] == "-d" {
-        let stdin = std::io::stdin().lock();
-        let mut data = serde_json::from_reader::<StdinLock, kalc_lib::units::Data>(stdin).unwrap();
-        data.options.prec = data.options.graph_prec;
-        data
+    let data = if args.len() > 2 && args[1] == "-d" && cfg!(feature = "serde") {
+        #[cfg(feature = "serde")]
+        {
+            let stdin = std::io::stdin().lock();
+            let mut data =
+                serde_json::from_reader::<StdinLock, kalc_lib::units::Data>(stdin).unwrap();
+            data.options.prec = data.options.graph_prec;
+            data
+        }
+        #[cfg(not(feature = "serde"))]
+        {
+            unreachable!()
+        }
     } else {
         let options = Options {
             prec: 128,
