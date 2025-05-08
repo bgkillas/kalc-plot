@@ -669,7 +669,7 @@ impl Data {
                 Val::Num => {
                     if let Some(c) = data.graph_type.constant {
                         (
-                            GraphType::Constant(c, true),
+                            GraphType::Constant(c, data.graph_type.inv),
                             matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
                         )
                     } else {
@@ -852,7 +852,7 @@ impl Data {
                 .map(|data| {
                     if let Some(c) = data.graph_type.constant {
                         (
-                            GraphType::Constant(c, true),
+                            GraphType::Constant(c, data.graph_type.inv),
                             matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
                         )
                     } else {
@@ -911,7 +911,7 @@ impl Data {
                 .map(|data| {
                     if let Some(c) = data.graph_type.constant {
                         (
-                            GraphType::Constant(c, true),
+                            GraphType::Constant(c, data.graph_type.inv),
                             matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
                         )
                     } else {
@@ -971,7 +971,7 @@ impl Data {
                 Val::Num => {
                     if let Some(c) = data.graph_type.constant {
                         (
-                            GraphType::Constant(c, true),
+                            GraphType::Constant(c, data.graph_type.inv),
                             matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
                         )
                     } else if data.graph_type.inv {
@@ -1152,8 +1152,10 @@ fn init(
         let mut data = Vec::new();
         for mut function in function.split('#').map(|a| a.to_string()) {
             split.push(take_vars(&mut function, options, &mut vars));
+            let x = function.starts_with("x=");
+            let y = function.starts_with("y=");
             if let Ok((func, funcvar, how, _, _)) = kalc_lib::parse::input_var(
-                &function,
+                if x || y { &function[2..] } else { &function },
                 &vars,
                 &mut Vec::new(),
                 &mut 0,
@@ -1165,7 +1167,7 @@ fn init(
                 &mut Vec::new(),
                 None,
             ) {
-                data.push((function, func, funcvar, how))
+                data.push((function, func, funcvar, how, x))
             }
         }
         data
@@ -1175,8 +1177,10 @@ fn init(
             .collect::<Vec<&str>>()
             .into_par_iter()
             .filter_map(|function| {
+                let x = function.starts_with("x=");
+                let y = function.starts_with("y=");
                 match kalc_lib::parse::input_var(
-                    function,
+                    if x || y { &function[2..] } else { function },
                     &vars,
                     &mut Vec::new(),
                     &mut 0,
@@ -1189,12 +1193,18 @@ fn init(
                     None,
                 ) {
                     Ok((func, funcvar, how, _, _)) => {
-                        Some((function.to_string(), func, funcvar, how))
+                        Some((function.to_string(), func, funcvar, how, x))
                     }
                     Err(_) => None,
                 }
             })
-            .collect::<Vec<(String, Vec<NumStr>, Vec<(String, Vec<NumStr>)>, HowGraphing)>>()
+            .collect::<Vec<(
+                String,
+                Vec<NumStr>,
+                Vec<(String, Vec<NumStr>)>,
+                HowGraphing,
+                bool,
+            )>>()
     };
     if data.is_empty() {
         return Err("no data");
@@ -1205,22 +1215,33 @@ fn init(
         .unwrap_or(data[0].3);
     if data
         .iter()
-        .any(|(_, _, _, a)| (a.x && a.y) != (how.x && how.y) && a.graph)
+        .any(|(_, _, _, a, _)| (a.x && a.y) != (how.x && how.y) && a.graph)
     {
         return Err("differing data");
     }
     let (a, b): (Vec<Plot>, Vec<String>) = data
         .into_iter()
-        .filter_map(|(name, func, funcvar, how)| {
+        .filter_map(|(name, func, funcvar, how, b)| {
             let x = NumStr::new(Number::from(rug::Complex::new(options.prec), None));
-            let graph_type = match do_math(
-                place_var(place_var(func.clone(), "x", x.clone()), "y", x.clone()),
-                *options,
-                place_funcvar(place_funcvar(funcvar.clone(), "x", x.clone()), "y", x),
-            ) {
+            let (f, fv) = match (how.x, how.y) {
+                (true, true) => (
+                    place_var(place_var(func.clone(), "x", x.clone()), "y", x.clone()),
+                    place_funcvar(place_funcvar(funcvar.clone(), "x", x.clone()), "y", x),
+                ),
+                (true, false) => (
+                    place_var(func.clone(), "x", x.clone()),
+                    place_funcvar(funcvar.clone(), "x", x.clone()),
+                ),
+                (false, true) => (
+                    place_var(func.clone(), "y", x.clone()),
+                    place_funcvar(funcvar.clone(), "y", x.clone()),
+                ),
+                (false, false) => (func.clone(), funcvar.clone()),
+            };
+            let graph_type = match do_math(f, *options, fv) {
                 Ok(Num(c)) if !how.graph => Type {
                     val: Val::Num,
-                    inv: false,
+                    inv: !b,
                     constant: Some(compact_constant(c.number)),
                     point: None,
                 },
