@@ -12,8 +12,6 @@ use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rupl::types::{Bound, Complex, Graph, GraphType, Name, Prec, Show};
 use std::env::args;
-#[cfg(feature = "serde")]
-use std::io::StdinLock;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use std::io::Write;
 use std::process::exit;
@@ -22,16 +20,17 @@ fn main() {
     let args = args().collect::<Vec<String>>();
     let s = String::new();
     let function = args.last().unwrap_or(&s);
-    let data = if args.len() > 2 && args[1] == "-d" && cfg!(feature = "serde") {
-        #[cfg(feature = "serde")]
+    let data = if args.len() > 2 && args[1] == "-d" && cfg!(feature = "bincode") {
+        #[cfg(feature = "bincode")]
         {
-            let stdin = std::io::stdin().lock();
-            let mut data =
-                serde_json::from_reader::<StdinLock, kalc_lib::units::Data>(stdin).unwrap();
+            let mut stdin = std::io::stdin().lock();
+            let mut data: kalc_lib::units::Data =
+                bincode::serde::decode_from_std_read(&mut stdin, bincode::config::standard())
+                    .unwrap();
             data.options.prec = data.options.graph_prec;
             data
         }
-        #[cfg(not(feature = "serde"))]
+        #[cfg(not(feature = "bincode"))]
         {
             unreachable!()
         }
@@ -431,10 +430,11 @@ fn get_names(graph: &[GraphType], names: Vec<(Vec<String>, String)>) -> Vec<Name
                     data.iter()
                         .any(|(_, _, a)| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
                 ),
-                GraphType::Constant(c) => (
+                GraphType::Constant(c, _) => (
                     matches!(c, Complex::Real(_) | Complex::Complex(_, _)),
                     matches!(c, Complex::Imag(_) | Complex::Complex(_, _)),
                 ),
+                GraphType::Point(_) => (true, false),
             };
             let show = if real && imag {
                 Show::Complex
@@ -668,7 +668,7 @@ impl Data {
                 Val::Num => {
                     if let Some(c) = data.graph_type.constant {
                         (
-                            GraphType::Constant(c),
+                            GraphType::Constant(c, true),
                             matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
                         )
                     } else {
@@ -847,7 +847,7 @@ impl Data {
                 .map(|data| {
                     if let Some(c) = data.graph_type.constant {
                         (
-                            GraphType::Constant(c),
+                            GraphType::Constant(c, true),
                             matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
                         )
                     } else {
@@ -906,7 +906,7 @@ impl Data {
                 .map(|data| {
                     if let Some(c) = data.graph_type.constant {
                         (
-                            GraphType::Constant(c),
+                            GraphType::Constant(c, true),
                             matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
                         )
                     } else {
@@ -966,7 +966,7 @@ impl Data {
                 Val::Num => {
                     if let Some(c) = data.graph_type.constant {
                         (
-                            GraphType::Constant(c),
+                            GraphType::Constant(c, true),
                             matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
                         )
                     } else if data.graph_type.inv {
@@ -1359,10 +1359,13 @@ $(        impl IntoIter<$b> for $ty {
     };
 }
 #[cfg(not(feature = "rayon"))]
-impl_into_iter!((
-    std::ops::RangeInclusive<usize>,
-    std::ops::RangeInclusive<usize>
-));
+impl_into_iter!(
+    (
+        std::ops::RangeInclusive<usize>,
+        std::ops::RangeInclusive<usize>
+    ),
+    (std::ops::Range<usize>, std::ops::Range<usize>)
+);
 #[cfg(not(feature = "rayon"))]
 impl<'a> IntoIter<std::vec::IntoIter<&'a str>> for Vec<&'a str> {
     fn into_par_iter(self) -> std::vec::IntoIter<&'a str> {
