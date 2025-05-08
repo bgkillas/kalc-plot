@@ -6,7 +6,9 @@ use kalc_lib::misc::{place_funcvar, place_var};
 use kalc_lib::options::silent_commands;
 use kalc_lib::parse::simplify;
 use kalc_lib::units::{Colors, HowGraphing, Number, Options, Variable};
+#[cfg(feature = "rayon")]
 use rayon::iter::ParallelIterator;
+#[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
 use rupl::types::{Bound, Complex, Graph, GraphType, Name, Prec, Show};
 use std::env::args;
@@ -1254,3 +1256,44 @@ fn compact_coord3d(mut graph: Vec<(f64, f64, Complex)>) -> (Vec<(f64, f64, Compl
     }
     (graph, complex)
 }
+#[cfg(not(feature = "rayon"))]
+pub trait IntoIter<T> {
+    fn into_par_iter(self) -> T;
+}
+#[cfg(not(feature = "rayon"))]
+macro_rules! impl_into_iter {
+    ($(($ty:ty, $b:ty)),*) => {
+$(        impl IntoIter<$b> for $ty {
+    fn into_par_iter(self)->$b {
+        self.into_iter()
+    }
+})*
+    };
+}
+#[cfg(not(feature = "rayon"))]
+impl_into_iter!((
+    std::ops::RangeInclusive<usize>,
+    std::ops::RangeInclusive<usize>
+));
+#[cfg(not(feature = "rayon"))]
+impl<'a> IntoIter<std::vec::IntoIter<&'a str>> for Vec<&'a str> {
+    fn into_par_iter(self) -> std::vec::IntoIter<&'a str> {
+        self.into_iter()
+    }
+}
+#[cfg(not(feature = "rayon"))]
+pub trait Iter<'a, T> {
+    fn par_iter(&'a self) -> T;
+}
+#[cfg(not(feature = "rayon"))]
+macro_rules! impl_iter {
+    ($(($ty:ty, $lt:lifetime, $b:ty)),*) => {
+$(        impl<$lt> Iter<$lt, $b> for $ty {
+    fn par_iter(&$lt self)->$b {
+        self.iter()
+    }
+})*
+    };
+}
+#[cfg(not(feature = "rayon"))]
+impl_iter!((Vec<Plot>,'a,std::slice::Iter<'a,Plot>));
