@@ -18,7 +18,6 @@ use std::io::StdinLock;
 use std::io::Write;
 use std::process::exit;
 //TODO {x/2, x^2} does not graph off of var
-//TODO do not compute constants that much
 fn main() {
     let args = args().collect::<Vec<String>>();
     let s = String::new();
@@ -667,45 +666,52 @@ impl Data {
             })
             .map(|data| match data.graph_type.val {
                 Val::Num => {
-                    let data = (0..=leny)
-                        .into_par_iter()
-                        .flat_map(|j| {
-                            let y = starty + j as f64 * dy;
-                            let y = NumStr::new(Number::from(
-                                rug::Complex::with_val(self.options.prec, y),
-                                None,
-                            ));
-                            let mut modified = place_var(data.func.clone(), "y", y.clone());
-                            let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
-                            simplify(&mut modified, &mut modifiedvars, self.options);
-                            let mut data = Vec::with_capacity(lenx + 1);
-                            for i in 0..=lenx {
-                                let x = startx + i as f64 * dx;
-                                let x = NumStr::new(Number::from(
-                                    rug::Complex::with_val(self.options.prec, x),
+                    if let Some(c) = data.graph_type.constant {
+                        (
+                            GraphType::Constant(c),
+                            matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
+                        )
+                    } else {
+                        let data = (0..=leny)
+                            .into_par_iter()
+                            .flat_map(|j| {
+                                let y = starty + j as f64 * dy;
+                                let y = NumStr::new(Number::from(
+                                    rug::Complex::with_val(self.options.prec, y),
                                     None,
                                 ));
-                                data.push(
-                                    if let Ok(Num(n)) = do_math(
-                                        place_var(modified.clone(), "x", x.clone()),
-                                        self.options,
-                                        place_funcvar(modifiedvars.clone(), "x", x),
-                                    ) {
-                                        Complex::Complex(
-                                            n.number.real().to_f64(),
-                                            n.number.imag().to_f64(),
-                                        )
-                                    } else {
-                                        eprintln!("\x1b[Ginconsistent data type 1");
-                                        exit(1)
-                                    },
-                                )
-                            }
-                            data
-                        })
-                        .collect::<Vec<Complex>>();
-                    let (a, b) = compact(data);
-                    (GraphType::Width3D(a, startx, starty, endx, endy), b)
+                                let mut modified = place_var(data.func.clone(), "y", y.clone());
+                                let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
+                                simplify(&mut modified, &mut modifiedvars, self.options);
+                                let mut data = Vec::with_capacity(lenx + 1);
+                                for i in 0..=lenx {
+                                    let x = startx + i as f64 * dx;
+                                    let x = NumStr::new(Number::from(
+                                        rug::Complex::with_val(self.options.prec, x),
+                                        None,
+                                    ));
+                                    data.push(
+                                        if let Ok(Num(n)) = do_math(
+                                            place_var(modified.clone(), "x", x.clone()),
+                                            self.options,
+                                            place_funcvar(modifiedvars.clone(), "x", x),
+                                        ) {
+                                            Complex::Complex(
+                                                n.number.real().to_f64(),
+                                                n.number.imag().to_f64(),
+                                            )
+                                        } else {
+                                            eprintln!("\x1b[Ginconsistent data type 1");
+                                            exit(1)
+                                        },
+                                    )
+                                }
+                                data
+                            })
+                            .collect::<Vec<Complex>>();
+                        let (a, b) = compact(data);
+                        (GraphType::Width3D(a, startx, starty, endx, endy), b)
+                    }
                 }
                 Val::Vector => {
                     let data = (0..=leny)
@@ -1190,7 +1196,7 @@ fn init(
         .unwrap_or(data[0].3);
     if data
         .iter()
-        .any(|(_, _, _, a)| (a.x && a.y) != (how.x && how.y) && how.graph)
+        .any(|(_, _, _, a)| (a.x && a.y) != (how.x && how.y) && a.graph)
     {
         return Err("differing data");
     }
