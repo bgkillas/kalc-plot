@@ -215,9 +215,8 @@ impl winit::application::ApplicationHandler for App {
                         zoom_delta,
                     })
                 } else if self.touch_positions.len() == 1 {
-                    self.input_state.pointer_down = true;
+                    self.input_state.pointer = Some(self.last_touch_positions.is_empty());
                     self.input_state.pointer_pos = self.touch_positions.values().next().copied();
-                    self.input_state.pointer_just_down = self.last_touch_positions.is_empty();
                 }
                 self.main(width, height);
                 self.input_state.reset();
@@ -238,8 +237,8 @@ impl winit::application::ApplicationHandler for App {
                     self.input_state.keys_pressed.push(event.logical_key.into());
                 }
             }
-            winit::event::WindowEvent::MouseInput { state, button, .. } => {
-                if button == winit::event::MouseButton::Left {
+            winit::event::WindowEvent::MouseInput { state, button, .. } => match button {
+                winit::event::MouseButton::Left => {
                     let Some(s) = &mut self.surface_state else {
                         return;
                     };
@@ -247,14 +246,23 @@ impl winit::application::ApplicationHandler for App {
                         return;
                     }
                     s.window().request_redraw();
-                    self.input_state.pointer_down = state.is_pressed();
-                    if state.is_pressed() {
-                        self.input_state.pointer_just_down = true
-                    }
+                    self.input_state.pointer = state.is_pressed().then_some(true);
                 }
-            }
+                winit::event::MouseButton::Right => {
+                    let Some(s) = &mut self.surface_state else {
+                        return;
+                    };
+                    if s.window().id() != window {
+                        return;
+                    }
+                    s.window().request_redraw();
+                    self.input_state.pointer_right = state.is_pressed().then_some(true);
+                }
+                _ => {}
+            },
             winit::event::WindowEvent::CursorEntered { .. } => {
-                self.input_state.pointer_down = false;
+                self.input_state.pointer = None;
+                self.input_state.pointer_right = None;
             }
             winit::event::WindowEvent::CursorMoved { position, .. } => {
                 let Some(s) = &mut self.surface_state else {
@@ -263,7 +271,8 @@ impl winit::application::ApplicationHandler for App {
                 if s.window().id() != window {
                     return;
                 }
-                if self.input_state.pointer_down
+                if self.input_state.pointer.is_some()
+                    || (self.input_state.pointer_right.is_some() && self.plot.draw_side)
                     || (!self.plot.is_3d
                         && (!self.plot.disable_coord
                             || self.plot.ruler_pos.is_some()
@@ -357,7 +366,7 @@ impl winit::application::ApplicationHandler for App {
                 s.window().request_redraw();
                 match phase {
                     winit::event::TouchPhase::Ended | winit::event::TouchPhase::Cancelled => {
-                        self.input_state.pointer_down = false;
+                        self.input_state.pointer = None;
                         self.input_state.pointer_pos = None;
                     }
                     winit::event::TouchPhase::Moved => {
