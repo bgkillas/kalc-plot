@@ -137,6 +137,7 @@ struct Type {
     val: Val,
     inv: bool,
     constant: Option<Complex>,
+    point: Option<rupl::types::Vec2>,
 }
 enum Val {
     Num,
@@ -714,52 +715,56 @@ impl Data {
                     }
                 }
                 Val::Vector => {
-                    let data = (0..=leny)
-                        .into_par_iter()
-                        .flat_map(|j| {
-                            let y = starty + j as f64 * dy;
-                            let y = NumStr::new(Number::from(
-                                rug::Complex::with_val(self.options.prec, y),
-                                None,
-                            ));
-                            let mut modified = place_var(data.func.clone(), "y", y.clone());
-                            let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
-                            simplify(&mut modified, &mut modifiedvars, self.options);
-                            let mut data = Vec::with_capacity(lenx + 1);
-                            for i in 0..=lenx {
-                                let x = startx + i as f64 * dx;
-                                let x = NumStr::new(Number::from(
-                                    rug::Complex::with_val(self.options.prec, x),
+                    if let Some(v) = data.graph_type.point {
+                        (GraphType::Point(v), false)
+                    } else {
+                        let data = (0..=leny)
+                            .into_par_iter()
+                            .flat_map(|j| {
+                                let y = starty + j as f64 * dy;
+                                let y = NumStr::new(Number::from(
+                                    rug::Complex::with_val(self.options.prec, y),
                                     None,
                                 ));
-                                data.push(
-                                    if let Ok(Vector(n)) = do_math(
-                                        place_var(modified.clone(), "x", x.clone()),
-                                        self.options,
-                                        place_funcvar(modifiedvars.clone(), "x", x),
-                                    ) {
-                                        if n.len() != 2 {
-                                            eprintln!("\x1b[Ginconsistent vector length 2");
+                                let mut modified = place_var(data.func.clone(), "y", y.clone());
+                                let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
+                                simplify(&mut modified, &mut modifiedvars, self.options);
+                                let mut data = Vec::with_capacity(lenx + 1);
+                                for i in 0..=lenx {
+                                    let x = startx + i as f64 * dx;
+                                    let x = NumStr::new(Number::from(
+                                        rug::Complex::with_val(self.options.prec, x),
+                                        None,
+                                    ));
+                                    data.push(
+                                        if let Ok(Vector(n)) = do_math(
+                                            place_var(modified.clone(), "x", x.clone()),
+                                            self.options,
+                                            place_funcvar(modifiedvars.clone(), "x", x),
+                                        ) {
+                                            if n.len() != 2 {
+                                                eprintln!("\x1b[Ginconsistent vector length 2");
+                                                exit(1)
+                                            }
+                                            (
+                                                n[0].number.real().to_f64(),
+                                                Complex::Complex(
+                                                    n[1].number.real().to_f64(),
+                                                    n[1].number.real().to_f64(),
+                                                ),
+                                            )
+                                        } else {
+                                            eprintln!("\x1b[Gdata type 2");
                                             exit(1)
-                                        }
-                                        (
-                                            n[0].number.real().to_f64(),
-                                            Complex::Complex(
-                                                n[1].number.real().to_f64(),
-                                                n[1].number.real().to_f64(),
-                                            ),
-                                        )
-                                    } else {
-                                        eprintln!("\x1b[Gdata type 2");
-                                        exit(1)
-                                    },
-                                )
-                            }
-                            data
-                        })
-                        .collect::<Vec<(f64, Complex)>>();
-                    let (a, b) = compact_coord(data);
-                    (GraphType::Coord(a), b)
+                                        },
+                                    )
+                                }
+                                data
+                            })
+                            .collect::<Vec<(f64, Complex)>>();
+                        let (a, b) = compact_coord(data);
+                        (GraphType::Coord(a), b)
+                    }
                 }
                 Val::Vector3D => {
                     let data = (0..=leny)
@@ -1021,38 +1026,42 @@ impl Data {
                     }
                 }
                 Val::Vector => {
-                    let data = (0..=len)
-                        .into_par_iter()
-                        .map(|i| {
-                            let x = start + i as f64 * dx;
-                            let x = NumStr::new(Number::from(
-                                rug::Complex::with_val(self.options.prec, x),
-                                None,
-                            ));
-                            if let Ok(Vector(n)) = do_math(
-                                place_var(data.func.clone(), "x", x.clone()),
-                                self.options,
-                                place_funcvar(data.funcvar.clone(), "x", x),
-                            ) {
-                                if n.len() != 2 {
-                                    eprintln!("\x1b[Ginconsistent vector length 7");
+                    if let Some(v) = data.graph_type.point {
+                        (GraphType::Point(v), false)
+                    } else {
+                        let data = (0..=len)
+                            .into_par_iter()
+                            .map(|i| {
+                                let x = start + i as f64 * dx;
+                                let x = NumStr::new(Number::from(
+                                    rug::Complex::with_val(self.options.prec, x),
+                                    None,
+                                ));
+                                if let Ok(Vector(n)) = do_math(
+                                    place_var(data.func.clone(), "x", x.clone()),
+                                    self.options,
+                                    place_funcvar(data.funcvar.clone(), "x", x),
+                                ) {
+                                    if n.len() != 2 {
+                                        eprintln!("\x1b[Ginconsistent vector length 7");
+                                        exit(1)
+                                    }
+                                    (
+                                        n[0].number.real().to_f64(),
+                                        Complex::Complex(
+                                            n[1].number.real().to_f64(),
+                                            n[1].number.imag().to_f64(),
+                                        ),
+                                    )
+                                } else {
+                                    eprintln!("\x1b[Gdata type 7");
                                     exit(1)
                                 }
-                                (
-                                    n[0].number.real().to_f64(),
-                                    Complex::Complex(
-                                        n[1].number.real().to_f64(),
-                                        n[1].number.imag().to_f64(),
-                                    ),
-                                )
-                            } else {
-                                eprintln!("\x1b[Gdata type 7");
-                                exit(1)
-                            }
-                        })
-                        .collect::<Vec<(f64, Complex)>>();
-                    let (a, b) = compact_coord(data);
-                    (GraphType::Coord(a), b)
+                            })
+                            .collect::<Vec<(f64, Complex)>>();
+                        let (a, b) = compact_coord(data);
+                        (GraphType::Coord(a), b)
+                    }
                 }
                 Val::Vector3D => {
                     let data = (0..=len)
@@ -1213,21 +1222,34 @@ fn init(
                     val: Val::Num,
                     inv: false,
                     constant: Some(compact_constant(c.number)),
+                    point: None,
                 },
                 Ok(Num(_)) => Type {
                     val: Val::Num,
                     inv: how.y && !how.x,
                     constant: None,
+                    point: None,
+                },
+                Ok(Vector(v)) if v.len() == 2 && !how.graph => Type {
+                    val: Val::Vector,
+                    inv: how.y && !how.x,
+                    constant: None,
+                    point: Some(rupl::types::Vec2::new(
+                        v[0].number.real().to_f64(),
+                        v[1].number.real().to_f64(),
+                    )),
                 },
                 Ok(Vector(v)) if v.len() == 2 => Type {
                     val: Val::Vector,
                     inv: how.y && !how.x,
                     constant: None,
+                    point: None,
                 },
                 Ok(Vector(v)) if v.len() == 3 => Type {
                     val: Val::Vector3D,
                     inv: how.y && !how.x,
                     constant: None,
+                    point: None,
                 },
                 Ok(_) | Err(_) => {
                     return None;
