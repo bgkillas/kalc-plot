@@ -7,9 +7,9 @@ use kalc_lib::options::silent_commands;
 use kalc_lib::parse::simplify;
 use kalc_lib::units::{Colors, HowGraphing, Number, Options, Variable};
 #[cfg(feature = "rayon")]
-use rayon::iter::ParallelIterator;
+use rayon::iter::IntoParallelIterator;
 #[cfg(feature = "rayon")]
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
+use rayon::iter::ParallelIterator;
 use rupl::types::{Bound, Complex, Graph, GraphType, Name, Prec, Show};
 use std::env::args;
 #[cfg(feature = "serde")]
@@ -18,6 +18,7 @@ use std::io::StdinLock;
 use std::io::Write;
 use std::process::exit;
 //TODO {x/2, x^2} does not graph off of var
+//TODO do not compute constants that much
 fn main() {
     let args = args().collect::<Vec<String>>();
     let s = String::new();
@@ -154,6 +155,7 @@ struct Data {
     data: Vec<Plot>,
     options: Options,
     vars: Vec<Variable>,
+    blacklist: Vec<usize>,
 }
 
 #[cfg(feature = "egui")]
@@ -461,6 +463,7 @@ impl App {
             data,
             options,
             vars,
+            blacklist: Vec::new(),
         };
         let (graph, complex) = if graphing_mode.x && graphing_mode.y {
             data.generate_3d(
@@ -585,7 +588,8 @@ impl Data {
             plot.set_is_3d(how.x && how.y && how.graph);
             ret = Some(func);
         }
-        if let Some(bound) = plot.update_res() {
+        if let (Some(bound), blacklist) = plot.update_res() {
+            self.blacklist = blacklist;
             match bound {
                 Bound::Width(s, e, Prec::Mult(p)) => {
                     plot.clear_data();
@@ -647,9 +651,15 @@ impl Data {
     ) -> (Vec<GraphType>, bool) {
         let dx = (endx - startx) / lenx as f64;
         let dy = (endy - starty) / leny as f64;
-        let data = self
-            .data
-            .par_iter()
+        let data = (0..self.data.len())
+            .into_par_iter()
+            .filter_map(|i| {
+                if self.blacklist.contains(&i) {
+                    None
+                } else {
+                    Some(&self.data[i])
+                }
+            })
             .map(|data| match data.graph_type.val {
                 Val::Num => {
                     let data = (0..=leny)
@@ -814,8 +824,15 @@ impl Data {
                 rug::Complex::with_val(self.options.prec, y),
                 None,
             ));
-            self.data
-                .par_iter()
+            (0..self.data.len())
+                .into_par_iter()
+                .filter_map(|i| {
+                    if self.blacklist.contains(&i) {
+                        None
+                    } else {
+                        Some(&self.data[i])
+                    }
+                })
                 .map(|data| {
                     let mut modified = place_var(data.func.clone(), "y", y.clone());
                     let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y.clone());
@@ -859,8 +876,15 @@ impl Data {
                 rug::Complex::with_val(self.options.prec, x),
                 None,
             ));
-            self.data
-                .par_iter()
+            (0..self.data.len())
+                .into_par_iter()
+                .filter_map(|i| {
+                    if self.blacklist.contains(&i) {
+                        None
+                    } else {
+                        Some(&self.data[i])
+                    }
+                })
                 .map(|data| {
                     let mut modified = place_var(data.func.clone(), "x", x.clone());
                     let mut modifiedvars = place_funcvar(data.funcvar.clone(), "x", x.clone());
@@ -904,9 +928,15 @@ impl Data {
     }
     fn generate_2d(&self, start: f64, end: f64, len: usize) -> (Vec<GraphType>, bool) {
         let dx = (end - start) / len as f64;
-        let data = self
-            .data
-            .par_iter()
+        let data = (0..self.data.len())
+            .into_par_iter()
+            .filter_map(|i| {
+                if self.blacklist.contains(&i) {
+                    None
+                } else {
+                    Some(&self.data[i])
+                }
+            })
             .map(|data| match data.graph_type.val {
                 Val::Num => {
                     if data.graph_type.inv {
