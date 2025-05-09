@@ -15,7 +15,6 @@ use std::env::args;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use std::io::Write;
 //TODO {x/2, x^2} does not graph off of var
-//TODO egui change name
 fn main() {
     let args = args().collect::<Vec<String>>();
     let s = String::new();
@@ -553,7 +552,9 @@ impl App {
                 let rect = ctx.available_rect();
                 self.plot
                     .set_screen(rect.width() as f64, rect.height() as f64, true);
-                self.data.update(&mut self.plot);
+                if let Some(n) = self.data.update(&mut self.plot) {
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Title(n))
+                }
                 self.plot.update(ctx, ui);
             });
     }
