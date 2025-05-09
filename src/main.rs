@@ -1390,8 +1390,12 @@ fn init(
     let mut split = vec![take_vars(&mut function, options, &mut vars)];
     let data = if function.contains(';') {
         let mut data = Vec::new();
+        let mut first = true;
         for mut function in function.split('#').map(|a| a.to_string()) {
-            split.push(take_vars(&mut function, options, &mut vars));
+            if !first {
+                split.push(take_vars(&mut function, options, &mut vars));
+            }
+            first = false;
             let x = function.starts_with("x=");
             let y = function.starts_with("y=");
             if let Ok((func, funcvar, how, _, _)) = kalc_lib::parse::input_var(
