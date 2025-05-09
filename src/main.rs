@@ -1607,7 +1607,7 @@ fn is_list(func: &[NumStr], funcvar: &[(String, Vec<NumStr>)]) -> bool {
     })
 }
 #[cfg(not(feature = "rayon"))]
-pub trait IntoIter<T> {
+pub trait IntoIter<T: ?Sized> {
     fn into_par_iter(self) -> T;
 }
 #[cfg(not(feature = "rayon"))]
@@ -1631,6 +1631,37 @@ impl_into_iter!(
 #[cfg(not(feature = "rayon"))]
 impl<'a> IntoIter<std::vec::IntoIter<&'a str>> for Vec<&'a str> {
     fn into_par_iter(self) -> std::vec::IntoIter<&'a str> {
+        self.into_iter()
+    }
+}
+#[cfg(not(feature = "rayon"))]
+impl
+    IntoIter<
+        std::vec::IntoIter<(
+            String,
+            Vec<NumStr>,
+            Vec<(String, Vec<NumStr>)>,
+            HowGraphing,
+            bool,
+        )>,
+    >
+    for Vec<(
+        String,
+        Vec<NumStr>,
+        Vec<(String, Vec<NumStr>)>,
+        HowGraphing,
+        bool,
+    )>
+{
+    fn into_par_iter(
+        self,
+    ) -> std::vec::IntoIter<(
+        String,
+        Vec<NumStr>,
+        Vec<(String, Vec<NumStr>)>,
+        HowGraphing,
+        bool,
+    )> {
         self.into_iter()
     }
 }
