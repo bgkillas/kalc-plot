@@ -11,6 +11,8 @@ use rayon::iter::IntoParallelIterator;
 #[cfg(feature = "rayon")]
 use rayon::iter::ParallelIterator;
 use rupl::types::{Bound, Complex, Graph, GraphType, Name, Prec, Show};
+#[cfg(feature = "bincode")]
+use serde::{Deserialize, Serialize};
 use std::env::args;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use std::io::Write;
@@ -116,14 +118,17 @@ fn main() {
     }
 }
 
+#[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
 struct App {
     plot: Graph,
     data: Data,
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+    #[cfg_attr(feature = "bincode", serde(skip_serializing, skip_deserializing))]
     surface_state: Option<
         softbuffer::Surface<std::rc::Rc<winit::window::Window>, std::rc::Rc<winit::window::Window>>,
     >,
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+    #[cfg_attr(feature = "bincode", serde(skip_serializing, skip_deserializing))]
     input_state: rupl::types::InputState,
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     name: String,
@@ -132,14 +137,17 @@ struct App {
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     last_touch_positions: std::collections::HashMap<u64, rupl::types::Vec2>,
 }
+#[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
 struct Type {
     val: Val,
     inv: bool,
 }
+#[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
 enum Mat {
     D2(Vec<rupl::types::Vec2>),
     D3(Vec<rupl::types::Vec3>),
 }
+#[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
 enum Val {
     Num(Option<Complex>),
     Vector(Option<rupl::types::Vec2>),
@@ -148,12 +156,14 @@ enum Val {
     List,
 }
 
+#[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
 struct Plot {
     func: Vec<NumStr>,
     funcvar: Vec<(String, Vec<NumStr>)>,
     graph_type: Type,
 }
 
+#[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
 struct Data {
     data: Vec<Plot>,
     options: Options,

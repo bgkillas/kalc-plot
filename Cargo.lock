@@ -1826,6 +1826,7 @@ dependencies = [
  "rayon",
  "rug",
  "rupl",
+ "serde",
  "softbuffer",
  "winit",
 ]
@@ -2762,6 +2763,7 @@ version = "0.1.1"
 dependencies = [
  "egui",
  "rayon",
+ "serde",
  "skia-safe",
  "tiny-skia",
  "winit",
