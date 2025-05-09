@@ -14,8 +14,8 @@ use rupl::types::{Bound, Complex, Graph, GraphType, Name, Prec, Show};
 use std::env::args;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use std::io::Write;
-use std::process::exit;
 //TODO {x/2, x^2} does not graph off of var
+//TODO egui change name
 fn main() {
     let args = args().collect::<Vec<String>>();
     let s = String::new();
@@ -381,6 +381,7 @@ impl winit::application::ApplicationHandler for App {
                     winit::event::TouchPhase::Ended | winit::event::TouchPhase::Cancelled => {
                         self.input_state.pointer = None;
                         self.input_state.pointer_pos = None;
+                        self.touch_positions.remove(&id);
                     }
                     winit::event::TouchPhase::Moved => {
                         self.touch_positions
@@ -554,15 +555,22 @@ impl App {
     }
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     fn main(&mut self, width: u32, height: u32) {
+        let mut b = false;
         if let Some(buffer) = &mut self.surface_state {
-            let mut buffer = buffer.buffer_mut().unwrap();
             self.plot.keybinds(&self.input_state);
             self.plot.set_screen(width as f64, height as f64, true);
             if let Some(n) = self.data.update(&mut self.plot) {
+                b = true;
                 self.name = n;
             };
+            let mut buffer = buffer.buffer_mut().unwrap();
             self.plot.update(width, height, &mut buffer);
             buffer.present().unwrap();
+        }
+        if b {
+            if let Some(w) = &self.surface_state {
+                w.window().set_title(&self.name)
+            }
         }
     }
 }
@@ -573,16 +581,21 @@ impl Data {
         if let Some(name) = plot.update_res_name() {
             let func = name
                 .iter()
-                .map(|n| {
+                .filter_map(|n| {
                     let v: Vec<String> = n.vars.iter().filter(|a| !a.is_empty()).cloned().collect();
-                    if v.is_empty() {
-                        n.name.clone()
+                    if n.name.is_empty() && v.is_empty() {
+                        None
                     } else {
-                        format!("{};{}", v.join(";"), n.name)
+                        Some(if v.is_empty() {
+                            n.name.clone()
+                        } else {
+                            format!("{};{}", v.join(";"), n.name)
+                        })
                     }
                 })
                 .collect::<Vec<String>>()
-                .join("#");
+                .join("#")
+                .replace(";#", ";");
             let how;
             let new_name;
             (self.data, new_name, how) = init(&func, &mut self.options, self.vars.clone())
@@ -702,8 +715,7 @@ impl Data {
                                                 n.number.imag().to_f64(),
                                             )
                                         } else {
-                                            eprintln!("\x1b[Ginconsistent data type 1");
-                                            exit(1)
+                                            Complex::Complex(f64::NAN, f64::NAN)
                                         },
                                     )
                                 }
@@ -743,19 +755,18 @@ impl Data {
                                             place_funcvar(modifiedvars.clone(), "x", x),
                                         ) {
                                             if n.len() != 2 {
-                                                eprintln!("\x1b[Ginconsistent vector length 2");
-                                                exit(1)
+                                                (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
+                                            } else {
+                                                (
+                                                    n[0].number.real().to_f64(),
+                                                    Complex::Complex(
+                                                        n[1].number.real().to_f64(),
+                                                        n[1].number.real().to_f64(),
+                                                    ),
+                                                )
                                             }
-                                            (
-                                                n[0].number.real().to_f64(),
-                                                Complex::Complex(
-                                                    n[1].number.real().to_f64(),
-                                                    n[1].number.real().to_f64(),
-                                                ),
-                                            )
                                         } else {
-                                            eprintln!("\x1b[Gdata type 2");
-                                            exit(1)
+                                            (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
                                         },
                                     )
                                 }
@@ -792,20 +803,23 @@ impl Data {
                                         place_funcvar(modifiedvars.clone(), "x", x),
                                     ) {
                                         if n.len() != 3 {
-                                            eprintln!("\x1b[Ginconsistent vector length 3");
-                                            exit(1)
+                                            (
+                                                f64::NAN,
+                                                f64::NAN,
+                                                Complex::Complex(f64::NAN, f64::NAN),
+                                            )
+                                        } else {
+                                            (
+                                                n[0].number.real().to_f64(),
+                                                n[1].number.real().to_f64(),
+                                                Complex::Complex(
+                                                    n[2].number.real().to_f64(),
+                                                    n[2].number.imag().to_f64(),
+                                                ),
+                                            )
                                         }
-                                        (
-                                            n[0].number.real().to_f64(),
-                                            n[1].number.real().to_f64(),
-                                            Complex::Complex(
-                                                n[2].number.real().to_f64(),
-                                                n[2].number.imag().to_f64(),
-                                            ),
-                                        )
                                     } else {
-                                        eprintln!("\x1b[Gdata type 3");
-                                        exit(1)
+                                        (f64::NAN, f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
                                     },
                                 )
                             }
@@ -879,8 +893,7 @@ impl Data {
                                                 n.number.imag().to_f64(),
                                             )
                                         } else {
-                                            eprintln!("\x1b[Gdata type 4");
-                                            exit(1)
+                                            Complex::Complex(f64::NAN, f64::NAN)
                                         }
                                     })
                                     .collect::<Vec<Complex>>();
@@ -938,8 +951,7 @@ impl Data {
                                                 n.number.imag().to_f64(),
                                             )
                                         } else {
-                                            eprintln!("\x1b[Gdata type 5");
-                                            exit(1)
+                                            Complex::Complex(f64::NAN, f64::NAN)
                                         }
                                     })
                                     .collect::<Vec<Complex>>();
@@ -990,8 +1002,7 @@ impl Data {
                                 ) {
                                     (n.number.real().to_f64(), Complex::Complex(xv, 0.0))
                                 } else {
-                                    eprintln!("\x1b[Gdata type 6i");
-                                    exit(1)
+                                    (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
                                 }
                             })
                             .collect::<Vec<(f64, Complex)>>();
@@ -1016,8 +1027,7 @@ impl Data {
                                         n.number.imag().to_f64(),
                                     )
                                 } else {
-                                    eprintln!("\x1b[Gdata type 6");
-                                    exit(1)
+                                    Complex::Complex(f64::NAN, f64::NAN)
                                 }
                             })
                             .collect::<Vec<Complex>>();
@@ -1043,19 +1053,18 @@ impl Data {
                                     place_funcvar(data.funcvar.clone(), "x", x),
                                 ) {
                                     if n.len() != 2 {
-                                        eprintln!("\x1b[Ginconsistent vector length 7");
-                                        exit(1)
+                                        (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
+                                    } else {
+                                        (
+                                            n[0].number.real().to_f64(),
+                                            Complex::Complex(
+                                                n[1].number.real().to_f64(),
+                                                n[1].number.imag().to_f64(),
+                                            ),
+                                        )
                                     }
-                                    (
-                                        n[0].number.real().to_f64(),
-                                        Complex::Complex(
-                                            n[1].number.real().to_f64(),
-                                            n[1].number.imag().to_f64(),
-                                        ),
-                                    )
                                 } else {
-                                    eprintln!("\x1b[Gdata type 7");
-                                    exit(1)
+                                    (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
                                 }
                             })
                             .collect::<Vec<(f64, Complex)>>();
@@ -1078,20 +1087,19 @@ impl Data {
                                 place_funcvar(data.funcvar.clone(), "x", x),
                             ) {
                                 if n.len() != 3 {
-                                    eprintln!("\x1b[Ginconsistent vector length 8");
-                                    exit(1)
+                                    (f64::NAN, f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
+                                } else {
+                                    (
+                                        n[0].number.real().to_f64(),
+                                        n[1].number.real().to_f64(),
+                                        Complex::Complex(
+                                            n[2].number.real().to_f64(),
+                                            n[2].number.imag().to_f64(),
+                                        ),
+                                    )
                                 }
-                                (
-                                    n[0].number.real().to_f64(),
-                                    n[1].number.real().to_f64(),
-                                    Complex::Complex(
-                                        n[2].number.real().to_f64(),
-                                        n[2].number.imag().to_f64(),
-                                    ),
-                                )
                             } else {
-                                eprintln!("\x1b[Gdata type 8");
-                                exit(1)
+                                (f64::NAN, f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
                             }
                         })
                         .collect::<Vec<(f64, f64, Complex)>>();
@@ -1213,12 +1221,9 @@ fn init(
         .iter()
         .find_map(|d| if d.3.graph { Some(d.3) } else { None })
         .unwrap_or(data[0].3);
-    if data
-        .iter()
-        .any(|(_, _, _, a, _)| (a.x && a.y) != (how.x && how.y) && a.graph)
-    {
-        return Err("differing data");
-    }
+    let data = data
+        .into_iter()
+        .filter(|(_, _, _, a, _)| (a.x && a.y) == (how.x && how.y) || !a.graph);
     let (a, b): (Vec<Plot>, Vec<String>) = data
         .into_iter()
         .filter_map(|(name, func, funcvar, how, b)| {
