@@ -1,3 +1,5 @@
+#[cfg(not(feature = "rayon"))]
+use crate::IntoIter;
 use crate::get_names;
 use kalc_lib::complex::NumStr;
 use kalc_lib::complex::NumStr::{Matrix, Num, Vector};
@@ -11,8 +13,6 @@ use kalc_lib::units::{Colors, HowGraphing, Number, Options, Variable};
 use rayon::iter::IntoParallelIterator;
 #[cfg(feature = "rayon")]
 use rayon::iter::ParallelIterator;
-#[cfg(not(feature = "rayon"))]
-use crate::IntoIter;
 use rupl::types::{Bound, Complex, Graph, GraphType, Prec};
 #[cfg(feature = "bincode")]
 use serde::{Deserialize, Serialize};

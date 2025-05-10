@@ -187,11 +187,11 @@ pub(crate) fn get_names(graph: &[GraphType], names: Vec<(Vec<String>, String)>) 
         .collect()
 }
 #[cfg(not(feature = "rayon"))]
-use kalc_lib::units::HowGraphing;
-#[cfg(not(feature = "rayon"))]
 use crate::data::Plot;
 #[cfg(not(feature = "rayon"))]
 use kalc_lib::complex::NumStr;
+#[cfg(not(feature = "rayon"))]
+use kalc_lib::units::HowGraphing;
 #[cfg(not(feature = "rayon"))]
 pub trait IntoIter<T: ?Sized> {
     fn into_par_iter(self) -> T;
