@@ -16,7 +16,6 @@ use serde::{Deserialize, Serialize};
 use std::env::args;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use std::io::Write;
-//TODO {x/2, x^2} does not graph off of var
 fn main() {
     let args = args().collect::<Vec<String>>();
     let s = String::new();
