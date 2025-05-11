@@ -14,12 +14,13 @@ strip = true
 panic = "abort"
 
 [features]
-default=["skia", "rayon", "bincode"]
-egui=["dep:egui","dep:eframe","rupl/egui","rupl/rayon"]
-skia=["rupl/skia" ,"rupl/winit", "dep:winit", "dep:softbuffer","rupl/rayon"]
-tiny-skia=["rupl/tiny-skia" ,"rupl/winit", "dep:winit", "dep:softbuffer","rupl/rayon"]
-rayon=["dep:rayon"]
+default=["skia", "rayon", "bincode", "arboard"]
+egui=["dep:egui","dep:eframe","rupl/egui"]
+skia=["rupl/skia" ,"rupl/winit", "dep:winit", "dep:softbuffer"]
+tiny-skia=["rupl/tiny-skia" ,"rupl/winit", "dep:winit", "dep:softbuffer"]
+rayon=["dep:rayon", "rupl/rayon"]
 bincode=["dep:bincode", "dep:serde", "rupl/serde"]
+arboard=["rupl/arboard"]
 
 [dependencies]
 egui={version="0.31.1",optional=true}
