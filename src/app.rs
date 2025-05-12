@@ -43,7 +43,10 @@ impl App {
             options.yr = options.vyr;
         }
         let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);
-        plot.draw_side = side;
+        if side {
+            plot.draw_side = true;
+            plot.text_box = Some((0, 0));
+        }
         plot.is_complex = complex;
         plot.mult = 1.0 / 16.0;
         plot.main_colors = colors
