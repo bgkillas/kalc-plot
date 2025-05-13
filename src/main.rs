@@ -9,6 +9,7 @@ use rupl::types::{Complex, Graph, GraphType, Name, Show};
 #[cfg(feature = "bincode")]
 use serde::{Deserialize, Serialize};
 use std::env::args;
+use std::io::Read;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use std::io::Write;
 fn main() {
@@ -19,9 +20,9 @@ fn main() {
         #[cfg(feature = "bincode")]
         {
             let mut stdin = std::io::stdin().lock();
-            let mut data: kalc_lib::units::Data =
-                bincode::serde::decode_from_std_read(&mut stdin, bincode::config::standard())
-                    .unwrap();
+            let mut data = Vec::new();
+            stdin.read_to_end(&mut data).unwrap();
+            let mut data: kalc_lib::units::Data = bitcode::deserialize(&data).unwrap();
             data.options.prec = data.options.graph_prec;
             data
         }
