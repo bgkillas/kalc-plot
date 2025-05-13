@@ -83,22 +83,28 @@ impl Data {
         }
         if let (Some(bound), blacklist) = plot.update_res() {
             self.blacklist = blacklist;
+            let apply_names = |data: &[GraphType], complex: bool, plot: &mut Graph| {
+                if let Some(names) = names {
+                    let names = get_names(data, names);
+                    for (a, b) in plot
+                        .names
+                        .iter_mut()
+                        .filter(|a| !a.name.is_empty())
+                        .zip(names.iter())
+                    {
+                        a.show = b.show
+                    }
+                    plot.is_complex = complex;
+                } else {
+                    plot.is_complex |= complex;
+                }
+            };
             match bound {
                 Bound::Width(s, e, Prec::Mult(p)) => {
                     plot.clear_data();
                     let (data, complex) =
                         self.generate_2d(s, e, (p * self.options.samples_2d as f64) as usize);
-                    if let Some(names) = names {
-                        let names = get_names(&data, names);
-                        if names.len() == plot.names.len() {
-                            for (a, b) in plot.names.iter_mut().zip(names.iter()) {
-                                a.show = b.show
-                            }
-                        }
-                        plot.is_complex = complex;
-                    } else {
-                        plot.is_complex |= complex;
-                    }
+                    apply_names(&data, complex, plot);
                     plot.set_data(data);
                 }
                 Bound::Width3D(sx, sy, ex, ey, p) => {
@@ -115,17 +121,7 @@ impl Data {
                             self.generate_3d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x)
                         }
                     };
-                    if let Some(names) = names {
-                        let names = get_names(&data, names);
-                        if names.len() == plot.names.len() {
-                            for (a, b) in plot.names.iter_mut().zip(names.iter()) {
-                                a.show = b.show
-                            }
-                        }
-                        plot.is_complex = complex;
-                    } else {
-                        plot.is_complex |= complex;
-                    }
+                    apply_names(&data, complex, plot);
                     plot.set_data(data);
                 }
                 Bound::Width(_, _, _) => unreachable!(),
