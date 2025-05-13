@@ -17,6 +17,12 @@ impl App {
                 side = true;
                 Default::default()
             };
+        let tab_complete = {
+            let vars = vars.clone();
+            let word =
+                move |w: &str| -> Vec<String> { kalc_lib::misc::get_word_bank(w, &vars, options) };
+            Some(Box::new(word) as Box<dyn Fn(&str) -> Vec<String>>)
+        };
         let mut data = Data {
             data,
             options,
@@ -43,6 +49,7 @@ impl App {
             options.yr = options.vyr;
         }
         let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);
+        plot.tab_complete = tab_complete;
         if side {
             plot.draw_side = true;
             plot.text_box = Some((0, 0));
