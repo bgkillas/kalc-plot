@@ -93,7 +93,7 @@ impl Data {
             self.blacklist = plot
                 .blacklist_graphs
                 .iter()
-                .filter_map(|i| plot.index_to_name(*i, false))
+                .filter_map(|i| plot.index_to_name(*i, false).0)
                 .collect();
             let apply_names = |data: &[GraphType], complex: bool, plot: &mut Graph| {
                 if let Some(names) = names {
