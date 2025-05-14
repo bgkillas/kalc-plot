@@ -17,16 +17,19 @@ use rupl::types::{Bound, Complex, Graph, GraphType, Prec};
 #[cfg(feature = "bincode")]
 use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
+#[derive(Clone)]
 pub(crate) struct Type {
     pub(crate) val: Val,
     pub(crate) inv: bool,
 }
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
+#[derive(Clone)]
 pub(crate) enum Mat {
     D2(Vec<rupl::types::Vec2>),
     D3(Vec<rupl::types::Vec3>),
 }
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
+#[derive(Clone)]
 pub(crate) enum Val {
     Num(Option<Complex>),
     Vector(Option<rupl::types::Vec2>),
@@ -36,6 +39,7 @@ pub(crate) enum Val {
 }
 
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
+#[derive(Clone)]
 pub(crate) struct Plot {
     pub(crate) func: Vec<NumStr>,
     pub(crate) funcvar: Vec<(String, Vec<NumStr>)>,
@@ -43,6 +47,7 @@ pub(crate) struct Plot {
 }
 
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
+#[derive(Clone)]
 pub(crate) struct Data {
     pub(crate) data: Vec<Plot>,
     pub(crate) options: Options,
@@ -54,23 +59,26 @@ impl Data {
         let mut names = None;
         let mut ret = None;
         if let Some(name) = plot.update_res_name() {
-            let func = name
-                .iter()
-                .filter_map(|n| {
-                    let v: Vec<String> = n.vars.iter().filter(|a| !a.is_empty()).cloned().collect();
-                    if n.name.is_empty() && v.is_empty() {
-                        None
-                    } else {
-                        Some(if v.is_empty() {
-                            n.name.clone()
-                        } else {
-                            format!("{};{}", v.join(";"), n.name)
-                        })
+            let mut i = 0;
+            let mut func = Vec::new();
+            for n in &name {
+                let mut v: Vec<String> = Vec::new();
+                for a in &n.vars {
+                    if !a.is_empty() && !plot.blacklist_graphs.contains(&i) {
+                        v.push(a.clone())
                     }
-                })
-                .collect::<Vec<String>>()
-                .join("#")
-                .replace(";#", ";");
+                    i += 1;
+                }
+                if !n.name.is_empty() || !v.is_empty() {
+                    func.push(if v.is_empty() {
+                        n.name.clone()
+                    } else {
+                        format!("{};{}", v.join(";"), n.name)
+                    })
+                }
+                i += 1;
+            }
+            let func = func.join("#").replace(";#", ";");
             let how;
             let new_name;
             (self.data, new_name, how) = init(&func, &mut self.options, self.vars.clone())
@@ -81,8 +89,12 @@ impl Data {
             plot.set_is_3d(how.x && how.y && how.graph);
             ret = Some(func);
         }
-        if let (Some(bound), blacklist) = plot.update_res() {
-            self.blacklist = blacklist;
+        if let Some(bound) = plot.update_res() {
+            self.blacklist = plot
+                .blacklist_graphs
+                .iter()
+                .filter_map(|i| plot.index_to_name(*i))
+                .collect();
             let apply_names = |data: &[GraphType], complex: bool, plot: &mut Graph| {
                 if let Some(names) = names {
                     let names = get_names(data, names);
