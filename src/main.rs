@@ -9,6 +9,7 @@ use rupl::types::{Complex, Graph, GraphType, Name, Show};
 #[cfg(feature = "bincode")]
 use serde::{Deserialize, Serialize};
 use std::env::args;
+#[cfg(feature = "bincode")]
 use std::io::Read;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use std::io::Write;

@@ -13,7 +13,7 @@ use kalc_lib::units::{Colors, HowGraphing, Number, Options, Variable};
 use rayon::iter::IntoParallelIterator;
 #[cfg(feature = "rayon")]
 use rayon::iter::ParallelIterator;
-use rupl::types::{Bound, Complex, Graph, GraphType, Prec};
+use rupl::types::{Bound, Complex, Graph, GraphType, Name, Prec};
 #[cfg(feature = "bincode")]
 use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
@@ -59,87 +59,107 @@ impl Data {
         let mut names = None;
         let mut ret = None;
         if let Some(name) = plot.update_res_name() {
-            let mut i = 0;
-            let mut func = Vec::new();
-            for n in &name {
-                let mut v: Vec<String> = Vec::new();
-                for a in &n.vars {
-                    if !a.is_empty() && !plot.blacklist_graphs.contains(&i) {
-                        v.push(a.clone())
-                    }
-                    i += 1;
+            self.update_name(plot, &mut names, &mut ret, &name);
+        }
+        if let Some(bound) = plot.update_res() {
+            self.update_data(plot, names, bound);
+        }
+        ret
+    }
+    pub(crate) fn update_data(
+        &mut self,
+        plot: &mut Graph,
+        names: Option<Vec<(Vec<String>, String)>>,
+        bound: Bound,
+    ) {
+        self.blacklist = plot
+            .blacklist_graphs
+            .iter()
+            .filter_map(|i| plot.index_to_name(*i, false).0)
+            .collect();
+        let apply_names = |data: &[GraphType], complex: bool, plot: &mut Graph| {
+            if let Some(names) = names {
+                let names = get_names(data, names);
+                for (a, b) in plot
+                    .names
+                    .iter_mut()
+                    .filter(|a| !a.name.is_empty())
+                    .zip(names.iter())
+                {
+                    a.show = b.show
                 }
-                if !n.name.is_empty() || !v.is_empty() {
-                    func.push(if v.is_empty() {
-                        n.name.clone()
-                    } else {
-                        format!("{};{}", v.join(";"), n.name)
-                    })
+                plot.is_complex = complex;
+            } else {
+                plot.is_complex |= complex;
+            }
+        };
+        match bound {
+            Bound::Width(s, e, Prec::Mult(p)) => {
+                plot.clear_data();
+                let (data, complex) =
+                    self.generate_2d(s, e, (p * self.options.samples_2d as f64) as usize);
+                apply_names(&data, complex, plot);
+                plot.set_data(data);
+            }
+            Bound::Width3D(sx, sy, ex, ey, p) => {
+                plot.clear_data();
+                let (data, complex) = match p {
+                    Prec::Mult(p) => {
+                        let lx = (p * self.options.samples_3d.0 as f64) as usize;
+                        let ly = (p * self.options.samples_3d.1 as f64) as usize;
+                        self.generate_3d(sx, sy, ex, ey, lx, ly)
+                    }
+                    Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x, y),
+                    Prec::Slice(p) => {
+                        let l = (p * self.options.samples_2d as f64) as usize;
+                        self.generate_3d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x)
+                    }
+                };
+                apply_names(&data, complex, plot);
+                plot.set_data(data);
+            }
+            Bound::Width(_, _, _) => unreachable!(),
+        }
+    }
+    pub(crate) fn update_name(
+        &mut self,
+        plot: &mut Graph,
+        names: &mut Option<Vec<(Vec<String>, String)>>,
+        ret: &mut Option<String>,
+        name: &[Name],
+    ) {
+        let mut i = 0;
+        let mut func = Vec::new();
+        for n in name {
+            let mut v: Vec<String> = Vec::new();
+            for a in &n.vars {
+                if !a.is_empty() && !plot.blacklist_graphs.contains(&i) {
+                    v.push(a.clone())
                 }
                 i += 1;
             }
-            let func = func.join("#").replace(";#", ";");
-            let how;
-            let new_name;
-            (self.data, new_name, how) = init(&func, &mut self.options, self.vars.clone())
-                .unwrap_or((Vec::new(), Vec::new(), HowGraphing::default()));
-            if !new_name.is_empty() || name.is_empty() {
-                names = Some(new_name);
-            }
-            plot.set_is_3d(how.x && how.y && how.graph);
-            ret = Some(func);
-        }
-        if let Some(bound) = plot.update_res() {
-            self.blacklist = plot
-                .blacklist_graphs
-                .iter()
-                .filter_map(|i| plot.index_to_name(*i, false).0)
-                .collect();
-            let apply_names = |data: &[GraphType], complex: bool, plot: &mut Graph| {
-                if let Some(names) = names {
-                    let names = get_names(data, names);
-                    for (a, b) in plot
-                        .names
-                        .iter_mut()
-                        .filter(|a| !a.name.is_empty())
-                        .zip(names.iter())
-                    {
-                        a.show = b.show
-                    }
-                    plot.is_complex = complex;
+            if !n.name.is_empty() || !v.is_empty() {
+                func.push(if v.is_empty() {
+                    n.name.clone()
                 } else {
-                    plot.is_complex |= complex;
-                }
-            };
-            match bound {
-                Bound::Width(s, e, Prec::Mult(p)) => {
-                    plot.clear_data();
-                    let (data, complex) =
-                        self.generate_2d(s, e, (p * self.options.samples_2d as f64) as usize);
-                    apply_names(&data, complex, plot);
-                    plot.set_data(data);
-                }
-                Bound::Width3D(sx, sy, ex, ey, p) => {
-                    plot.clear_data();
-                    let (data, complex) = match p {
-                        Prec::Mult(p) => {
-                            let lx = (p * self.options.samples_3d.0 as f64) as usize;
-                            let ly = (p * self.options.samples_3d.1 as f64) as usize;
-                            self.generate_3d(sx, sy, ex, ey, lx, ly)
-                        }
-                        Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x, y),
-                        Prec::Slice(p) => {
-                            let l = (p * self.options.samples_2d as f64) as usize;
-                            self.generate_3d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x)
-                        }
-                    };
-                    apply_names(&data, complex, plot);
-                    plot.set_data(data);
-                }
-                Bound::Width(_, _, _) => unreachable!(),
+                    format!("{};{}", v.join(";"), n.name)
+                })
             }
+            i += 1;
         }
-        ret
+        let func = func.join("#").replace(";#", ";");
+        let how;
+        let new_name;
+        (self.data, new_name, how) = init(&func, &mut self.options, self.vars.clone()).unwrap_or((
+            Vec::new(),
+            Vec::new(),
+            HowGraphing::default(),
+        ));
+        if !new_name.is_empty() || name.is_empty() {
+            *names = Some(new_name);
+        }
+        plot.set_is_3d(how.x && how.y && how.graph);
+        *ret = Some(func);
     }
     pub(crate) fn generate_3d(
         &self,

@@ -2,8 +2,17 @@ use crate::data::Data;
 use crate::data::init;
 use crate::{App, get_names};
 use rupl::types::Graph;
+#[cfg(feature = "bincode")]
+use rupl::types::GraphTiny;
 impl App {
-    pub(crate) fn new(function: String, data: kalc_lib::units::Data) -> Self {
+    pub(crate) fn new(mut function: String, data: kalc_lib::units::Data) -> Self {
+        #[cfg(feature = "bincode")]
+        let tiny = if function.contains("@") {
+            let tiny: GraphTiny = std::mem::take(&mut function).into();
+            Some(tiny)
+        } else {
+            None
+        };
         let kalc_lib::units::Data {
             mut options,
             vars,
@@ -85,6 +94,11 @@ impl App {
                 }
                 _ => {}
             }
+        }
+        #[cfg(feature = "bincode")]
+        if let Some(tiny) = tiny {
+            plot.apply_tiny(tiny);
+            data.update(&mut plot);
         }
         data.update(&mut plot);
         Self {
