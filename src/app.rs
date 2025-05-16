@@ -5,7 +5,9 @@ use rupl::types::Graph;
 #[cfg(feature = "bincode")]
 use rupl::types::GraphTiny;
 impl App {
-    pub(crate) fn new(mut function: String, data: kalc_lib::units::Data) -> Self {
+    pub(crate) fn new(function: String, data: kalc_lib::units::Data) -> Self {
+        #[cfg(feature = "bincode")]
+        let mut function = function;
         #[cfg(feature = "bincode")]
         let tiny = if function.contains("@") {
             let tiny: GraphTiny = std::mem::take(&mut function).into();
@@ -124,7 +126,7 @@ impl App {
                 self.plot.keybinds(ui);
                 let rect = ctx.available_rect();
                 self.plot
-                    .set_screen(rect.width() as f64, rect.height() as f64, true);
+                    .set_screen(rect.width() as f64, rect.height() as f64, true, true);
                 if let Some(n) = self.data.update(&mut self.plot) {
                     ctx.send_viewport_cmd(egui::ViewportCommand::Title(n))
                 }
