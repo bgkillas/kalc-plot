@@ -7,7 +7,11 @@ impl App {
         #[cfg(feature = "bincode")]
         let mut function = function;
         #[cfg(feature = "bincode")]
-        let tiny = std::mem::take(&mut function).try_into().ok();
+        let tiny = (&function).try_into().ok();
+        #[cfg(feature = "bincode")]
+        if tiny.is_some() {
+            function = String::new()
+        }
         let kalc_lib::units::Data {
             mut options,
             vars,
