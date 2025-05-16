@@ -136,7 +136,8 @@ impl App {
         let mut b = false;
         if let Some(buffer) = &mut self.surface_state {
             self.plot.keybinds(&self.input_state);
-            self.plot.set_screen(width as f64, height as f64, true);
+            self.plot
+                .set_screen(width as f64, height as f64, true, true);
             if let Some(n) = self.data.update(&mut self.plot) {
                 b = true;
                 self.name = n;

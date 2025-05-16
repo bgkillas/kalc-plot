@@ -84,7 +84,7 @@ fn main() {
             let event_loop = winit::event_loop::EventLoop::new().unwrap();
             event_loop.run_app(&mut app).unwrap()
         } else {
-            app.plot.set_screen(width as f64, height as f64, true);
+            app.plot.set_screen(width as f64, height as f64, true, true);
             app.plot.mult = 1.0;
             app.plot.disable_lines = true;
             app.plot.disable_axis = true;
