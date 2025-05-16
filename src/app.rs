@@ -54,7 +54,11 @@ impl App {
         }
         let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);
         plot.tab_complete = tab_complete;
-        if side {
+        #[cfg(feature = "bincode")]
+        let b = side && tiny.is_none();
+        #[cfg(not(feature = "bincode"))]
+        let b = side;
+        if b {
             plot.draw_side = true;
             plot.text_box = Some((0, 0));
         }
@@ -90,15 +94,12 @@ impl App {
                 _ => {}
             }
         }
-        #[cfg(feature = "bincode")]
-        if let Some(tiny) = tiny {
-            plot.apply_tiny(tiny);
-            data.update(&mut plot);
-        }
         data.update(&mut plot);
         Self {
             plot,
             data,
+            #[cfg(feature = "bincode")]
+            tiny,
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             surface_state: None,
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
@@ -120,6 +121,10 @@ impl App {
                 let rect = ctx.available_rect();
                 self.plot
                     .set_screen(rect.width() as f64, rect.height() as f64, true, true);
+                #[cfg(feature = "bincode")]
+                if let Some(tiny) = std::mem::take(&mut self.tiny) {
+                    self.plot.apply_tiny(tiny);
+                }
                 if let Some(n) = self.data.update(&mut self.plot) {
                     ctx.send_viewport_cmd(egui::ViewportCommand::Title(n))
                 }
@@ -133,6 +138,10 @@ impl App {
             self.plot.keybinds(&self.input_state);
             self.plot
                 .set_screen(width as f64, height as f64, true, true);
+            #[cfg(feature = "bincode")]
+            if let Some(tiny) = std::mem::take(&mut self.tiny) {
+                self.plot.apply_tiny(tiny);
+            }
             if let Some(n) = self.data.update(&mut self.plot) {
                 b = true;
                 self.name = n;

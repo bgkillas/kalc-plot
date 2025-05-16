@@ -118,6 +118,8 @@ fn main() {
 struct App {
     plot: Graph,
     data: Data,
+    #[cfg(feature = "bincode")]
+    tiny: Option<rupl::types::GraphTiny>,
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     #[cfg_attr(feature = "bincode", serde(skip_serializing, skip_deserializing))]
     surface_state: Option<
