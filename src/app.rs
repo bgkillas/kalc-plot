@@ -59,11 +59,16 @@ impl App {
         let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);
         plot.tab_complete = tab_complete;
         #[cfg(feature = "bincode")]
+        {
+            plot.save_file =
+                dirs::config_dir().unwrap().to_str().unwrap().to_owned() + "/kalc/plot";
+        }
+        #[cfg(feature = "bincode")]
         let b = side && tiny.is_none();
         #[cfg(not(feature = "bincode"))]
         let b = side;
         if b {
-            plot.draw_side = true;
+            plot.menu = rupl::types::Menu::Side;
             plot.text_box = Some((0, 0));
         }
         plot.is_complex = complex;
