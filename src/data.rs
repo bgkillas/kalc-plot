@@ -194,10 +194,7 @@ impl Data {
                                 .into_par_iter()
                                 .flat_map(|j| {
                                     let y = starty + j as f64 * dy;
-                                    let y = NumStr::new(Number::from(
-                                        rug::Complex::with_val(self.options.prec, y),
-                                        None,
-                                    ));
+                                    let y = NumStr::new(Number::from_f64(y, &self.options));
                                     let mut modified = place_var(data.func.clone(), "y", y.clone());
                                     let mut modifiedvars =
                                         place_funcvar(data.funcvar.clone(), "y", y);
@@ -205,10 +202,7 @@ impl Data {
                                     let mut data = Vec::with_capacity(lenx + 1);
                                     for i in 0..=lenx {
                                         let x = startx + i as f64 * dx;
-                                        let x = NumStr::new(Number::from(
-                                            rug::Complex::with_val(self.options.prec, x),
-                                            None,
-                                        ));
+                                        let x = NumStr::new(Number::from_f64(x, &self.options));
                                         data.push(
                                             if let Ok(Num(n)) = do_math(
                                                 place_var(modified.clone(), "x", x.clone()),
@@ -239,10 +233,7 @@ impl Data {
                                 .into_par_iter()
                                 .flat_map(|j| {
                                     let y = starty + j as f64 * dy;
-                                    let y = NumStr::new(Number::from(
-                                        rug::Complex::with_val(self.options.prec, y),
-                                        None,
-                                    ));
+                                    let y = NumStr::new(Number::from_f64(y, &self.options));
                                     let mut modified = place_var(data.func.clone(), "y", y.clone());
                                     let mut modifiedvars =
                                         place_funcvar(data.funcvar.clone(), "y", y);
@@ -250,10 +241,7 @@ impl Data {
                                     let mut data = Vec::with_capacity(lenx + 1);
                                     for i in 0..=lenx {
                                         let x = startx + i as f64 * dx;
-                                        let x = NumStr::new(Number::from(
-                                            rug::Complex::with_val(self.options.prec, x),
-                                            None,
-                                        ));
+                                        let x = NumStr::new(Number::from_f64(x, &self.options));
                                         data.push(
                                             if let Ok(Vector(n)) = do_math(
                                                 place_var(modified.clone(), "x", x.clone()),
@@ -288,20 +276,14 @@ impl Data {
                             .into_par_iter()
                             .flat_map(|j| {
                                 let y = starty + j as f64 * dy;
-                                let y = NumStr::new(Number::from(
-                                    rug::Complex::with_val(self.options.prec, y),
-                                    None,
-                                ));
+                                let y = NumStr::new(Number::from_f64(y, &self.options));
                                 let mut modified = place_var(data.func.clone(), "y", y.clone());
                                 let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
                                 simplify(&mut modified, &mut modifiedvars, self.options);
                                 let mut data = Vec::with_capacity(lenx + 1);
                                 for i in 0..=lenx {
                                     let x = startx + i as f64 * dx;
-                                    let x = NumStr::new(Number::from(
-                                        rug::Complex::with_val(self.options.prec, x),
-                                        None,
-                                    ));
+                                    let x = NumStr::new(Number::from_f64(x, &self.options));
                                     data.push(
                                         if let Ok(Vector(n)) = do_math(
                                             place_var(modified.clone(), "x", x.clone()),
@@ -344,20 +326,14 @@ impl Data {
                             .into_par_iter()
                             .flat_map(|j| {
                                 let ys = starty + j as f64 * dy;
-                                let y = NumStr::new(Number::from(
-                                    rug::Complex::with_val(self.options.prec, ys),
-                                    None,
-                                ));
+                                let y = NumStr::new(Number::from_f64(ys, &self.options));
                                 let mut modified = place_var(data.func.clone(), "y", y.clone());
                                 let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
                                 simplify(&mut modified, &mut modifiedvars, self.options);
                                 let mut data = Vec::with_capacity(lenx + 1);
                                 for i in 0..=lenx {
                                     let xs = startx + i as f64 * dx;
-                                    let x = NumStr::new(Number::from(
-                                        rug::Complex::with_val(self.options.prec, xs),
-                                        None,
-                                    ));
+                                    let x = NumStr::new(Number::from_f64(xs, &self.options));
                                     if let Ok(Vector(v)) = do_math(
                                         place_var(modified.clone(), "x", x.clone()),
                                         self.options,
@@ -417,10 +393,7 @@ impl Data {
         let dy = (endy - starty) / leny as f64;
         let data = if view_x {
             let y = starty + (slice as f64 + leny as f64 / 2.0) * dy;
-            let y = NumStr::new(Number::from(
-                rug::Complex::with_val(self.options.prec, y),
-                None,
-            ));
+            let y = NumStr::new(Number::from_f64(y, &self.options));
             (0..self.data.len())
                 .into_par_iter()
                 .filter_map(|i| {
@@ -446,10 +419,7 @@ impl Data {
                                     .into_par_iter()
                                     .map(|i| {
                                         let x = startx + i as f64 * dx;
-                                        let x = NumStr::new(Number::from(
-                                            rug::Complex::with_val(self.options.prec, x),
-                                            None,
-                                        ));
+                                        let x = NumStr::new(Number::from_f64(x, &self.options));
                                         if let Ok(Num(n)) = do_math(
                                             place_var(modified.clone(), "x", x.clone()),
                                             self.options,
@@ -474,10 +444,7 @@ impl Data {
                                     .into_par_iter()
                                     .flat_map(|i| {
                                         let xv = startx + i as f64 * dx;
-                                        let x = NumStr::new(Number::from(
-                                            rug::Complex::with_val(self.options.prec, xv),
-                                            None,
-                                        ));
+                                        let x = NumStr::new(Number::from_f64(xv, &self.options));
                                         if let Ok(Vector(v)) = do_math(
                                             place_var(data.func.clone(), "x", x.clone()),
                                             self.options,
@@ -520,10 +487,7 @@ impl Data {
                 .collect::<Vec<(GraphType, bool)>>()
         } else {
             let x = startx + (slice as f64 + lenx as f64 / 2.0) * dx;
-            let x = NumStr::new(Number::from(
-                rug::Complex::with_val(self.options.prec, x),
-                None,
-            ));
+            let x = NumStr::new(Number::from_f64(x, &self.options));
             (0..self.data.len())
                 .into_par_iter()
                 .filter_map(|i| {
@@ -549,10 +513,7 @@ impl Data {
                                     .into_par_iter()
                                     .map(|i| {
                                         let y = starty + i as f64 * dy;
-                                        let y = NumStr::new(Number::from(
-                                            rug::Complex::with_val(self.options.prec, y),
-                                            None,
-                                        ));
+                                        let y = NumStr::new(Number::from_f64(y, &self.options));
                                         if let Ok(Num(n)) = do_math(
                                             place_var(modified.clone(), "y", y.clone()),
                                             self.options,
@@ -577,10 +538,7 @@ impl Data {
                                     .into_par_iter()
                                     .flat_map(|i| {
                                         let xv = starty + i as f64 * dx;
-                                        let x = NumStr::new(Number::from(
-                                            rug::Complex::with_val(self.options.prec, xv),
-                                            None,
-                                        ));
+                                        let x = NumStr::new(Number::from_f64(xv, &self.options));
                                         if let Ok(Vector(v)) = do_math(
                                             place_var(data.func.clone(), "y", x.clone()),
                                             self.options,
@@ -649,10 +607,7 @@ impl Data {
                                 .into_par_iter()
                                 .map(|i| {
                                     let xv = start + i as f64 * dx;
-                                    let x = NumStr::new(Number::from(
-                                        rug::Complex::with_val(self.options.prec, xv),
-                                        None,
-                                    ));
+                                    let x = NumStr::new(Number::from_f64(xv, &self.options));
                                     if let Ok(Num(n)) = do_math(
                                         place_var(data.func.clone(), "y", x.clone()),
                                         self.options,
@@ -671,10 +626,7 @@ impl Data {
                                 .into_par_iter()
                                 .map(|i| {
                                     let x = start + i as f64 * dx;
-                                    let x = NumStr::new(Number::from(
-                                        rug::Complex::with_val(self.options.prec, x),
-                                        None,
-                                    ));
+                                    let x = NumStr::new(Number::from_f64(x, &self.options));
                                     if let Ok(Num(n)) = do_math(
                                         place_var(data.func.clone(), "x", x.clone()),
                                         self.options,
@@ -701,10 +653,7 @@ impl Data {
                                 .into_par_iter()
                                 .map(|i| {
                                     let x = start + i as f64 * dx;
-                                    let x = NumStr::new(Number::from(
-                                        rug::Complex::with_val(self.options.prec, x),
-                                        None,
-                                    ));
+                                    let x = NumStr::new(Number::from_f64(x, &self.options));
                                     if let Ok(Vector(n)) = do_math(
                                         place_var(data.func.clone(), "x", x.clone()),
                                         self.options,
@@ -735,10 +684,7 @@ impl Data {
                             .into_par_iter()
                             .map(|i| {
                                 let x = start + i as f64 * dx;
-                                let x = NumStr::new(Number::from(
-                                    rug::Complex::with_val(self.options.prec, x),
-                                    None,
-                                ));
+                                let x = NumStr::new(Number::from_f64(x, &self.options));
                                 if let Ok(Vector(n)) = do_math(
                                     place_var(data.func.clone(), "x", x.clone()),
                                     self.options,
@@ -770,10 +716,7 @@ impl Data {
                                 .into_par_iter()
                                 .flat_map(|i| {
                                     let xv = start + i as f64 * dx;
-                                    let x = NumStr::new(Number::from(
-                                        rug::Complex::with_val(self.options.prec, xv),
-                                        None,
-                                    ));
+                                    let x = NumStr::new(Number::from_f64(xv, &self.options));
                                     if let Ok(Vector(v)) = do_math(
                                         place_var(data.func.clone(), "y", x.clone()),
                                         self.options,
@@ -794,10 +737,7 @@ impl Data {
                                 .into_par_iter()
                                 .flat_map(|i| {
                                     let xv = start + i as f64 * dx;
-                                    let x = NumStr::new(Number::from(
-                                        rug::Complex::with_val(self.options.prec, xv),
-                                        None,
-                                    ));
+                                    let x = NumStr::new(Number::from_f64(xv, &self.options));
                                     if let Ok(Vector(v)) = do_math(
                                         place_var(data.func.clone(), "x", x.clone()),
                                         self.options,
@@ -959,7 +899,7 @@ pub(crate) fn init(
         .into_par_iter()
         .filter(|(_, _, _, a, _)| (a.x && a.y) == (how.x && how.y) || !a.graph)
         .filter_map(|(name, func, funcvar, how, b)| {
-            let x = NumStr::new(Number::from(rug::Complex::new(options.prec), None));
+            let x = NumStr::new(Number::new(&options));
             let (f, fv) = match (how.x, how.y) {
                 (true, true) => (
                     place_var(place_var(func.clone(), "x", x.clone()), "y", x.clone()),
