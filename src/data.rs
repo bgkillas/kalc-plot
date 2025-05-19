@@ -899,7 +899,7 @@ pub(crate) fn init(
         .into_par_iter()
         .filter(|(_, _, _, a, _)| (a.x && a.y) == (how.x && how.y) || !a.graph)
         .filter_map(|(name, func, funcvar, how, b)| {
-            let x = NumStr::new(Number::new(&options));
+            let x = NumStr::new(Number::new(options));
             let (f, fv) = match (how.x, how.y) {
                 (true, true) => (
                     place_var(place_var(func.clone(), "x", x.clone()), "y", x.clone()),

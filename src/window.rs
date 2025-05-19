@@ -123,9 +123,7 @@ impl winit::application::ApplicationHandler for App {
                     || (self.input_state.pointer_right.is_some()
                         && matches!(self.plot.menu, rupl::types::Menu::Side))
                     || (!self.plot.is_3d
-                        && (!self.plot.disable_coord
-                            || self.plot.ruler_pos.is_some()
-                            || matches!(self.plot.menu, rupl::types::Menu::Side)))
+                        && (!self.plot.disable_coord || self.plot.ruler_pos.is_some()))
                 {
                     s.window().request_redraw();
                 }
