@@ -129,9 +129,9 @@ impl Data {
         name: &[Name],
     ) {
         let mut i = 0;
-        let mut func = Vec::new();
+        let mut func = Vec::with_capacity(name.len());
         for n in name {
-            let mut v: Vec<String> = Vec::new();
+            let mut v: Vec<String> = Vec::with_capacity(n.vars.len());
             for a in &n.vars {
                 if !a.is_empty() && !plot.blacklist_graphs.contains(&i) {
                     v.push(a.clone())

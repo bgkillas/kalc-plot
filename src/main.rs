@@ -21,7 +21,9 @@ fn main() {
         #[cfg(feature = "bincode")]
         {
             let mut stdin = std::io::stdin().lock();
-            let mut data = Vec::new();
+            let len = &mut [0; 8];
+            stdin.read_exact(len).unwrap();
+            let mut data = Vec::with_capacity(usize::from_be_bytes(*len));
             stdin.read_to_end(&mut data).unwrap();
             let mut data: kalc_lib::units::Data = bitcode::deserialize(&data).unwrap();
             data.options.prec = data.options.graph_prec;
