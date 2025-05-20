@@ -1110,6 +1110,7 @@ fn is_list(func: &[NumStr], funcvar: &[(String, Vec<NumStr>)]) -> bool {
                     | "quartic"
                     | "unity"
                     | "solve"
+                    | "isolate"
             ) =>
         {
             true
@@ -1128,6 +1129,7 @@ fn is_list(func: &[NumStr], funcvar: &[(String, Vec<NumStr>)]) -> bool {
                         | "quartic"
                         | "unity"
                         | "solve"
+                        | "isolate"
                 ) =>
             {
                 true
