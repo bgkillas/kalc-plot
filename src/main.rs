@@ -146,41 +146,53 @@ impl eframe::App for App {
 }
 
 pub(crate) fn get_names(graph: &[GraphType], names: Vec<(Vec<String>, String)>) -> Vec<Name> {
+    fn ri(data: &GraphType) -> (bool, bool) {
+        match data {
+            GraphType::Width(data, _, _) => (
+                data.iter()
+                    .any(|a| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
+                data.iter()
+                    .any(|a| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
+            ),
+            GraphType::Coord(data) => (
+                data.iter()
+                    .any(|(_, a)| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
+                data.iter()
+                    .any(|(_, a)| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
+            ),
+            GraphType::Width3D(data, _, _, _, _) => (
+                data.iter()
+                    .any(|a| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
+                data.iter()
+                    .any(|a| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
+            ),
+            GraphType::Coord3D(data) => (
+                data.iter()
+                    .any(|(_, _, a)| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
+                data.iter()
+                    .any(|(_, _, a)| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
+            ),
+            GraphType::Constant(c, _) => (
+                matches!(c, Complex::Real(_) | Complex::Complex(_, _)),
+                matches!(c, Complex::Imag(_) | Complex::Complex(_, _)),
+            ),
+            GraphType::Point(_) => (true, false),
+            GraphType::List(d) => {
+                let (mut a, mut b) = (false, false);
+                for data in d {
+                    let (c, d) = ri(data);
+                    a |= c;
+                    b |= d;
+                }
+                (a, b)
+            }
+        }
+    }
     names
         .into_iter()
         .zip(graph.iter())
         .map(|((vars, name), data)| {
-            let (real, imag) = match data {
-                GraphType::Width(data, _, _) => (
-                    data.iter()
-                        .any(|a| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
-                    data.iter()
-                        .any(|a| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
-                ),
-                GraphType::Coord(data) => (
-                    data.iter()
-                        .any(|(_, a)| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
-                    data.iter()
-                        .any(|(_, a)| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
-                ),
-                GraphType::Width3D(data, _, _, _, _) => (
-                    data.iter()
-                        .any(|a| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
-                    data.iter()
-                        .any(|a| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
-                ),
-                GraphType::Coord3D(data) => (
-                    data.iter()
-                        .any(|(_, _, a)| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
-                    data.iter()
-                        .any(|(_, _, a)| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
-                ),
-                GraphType::Constant(c, _) => (
-                    matches!(c, Complex::Real(_) | Complex::Complex(_, _)),
-                    matches!(c, Complex::Imag(_) | Complex::Complex(_, _)),
-                ),
-                GraphType::Point(_) => (true, false),
-            };
+            let (real, imag) = ri(data);
             let show = if real && imag {
                 Show::Complex
             } else if imag {
