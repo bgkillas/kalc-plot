@@ -12,6 +12,12 @@ homepage = "https://github.com/bgkillas/kalc-plot"
 lto = true
 strip = true
 panic = "abort"
+split-debuginfo = "packed"
+incremental=true
+codegen-units=1
+
+[profile.dev]
+opt-level = 1
 
 [features]
 default=["skia", "rayon", "bincode", "arboard"]
