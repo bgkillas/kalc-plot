@@ -930,7 +930,7 @@ pub(crate) fn init(
             let x = function.starts_with("x=");
             let y = function.starts_with("y=");
             if let Ok((func, funcvar, how, _, _)) = kalc_lib::parse::input_var(
-                if x || y { &function[2..] } else { &function },
+                &format!("({})", if x || y { &function[2..] } else { &function }),
                 &vars,
                 &mut Vec::new(),
                 &mut 0,
@@ -940,6 +940,7 @@ pub(crate) fn init(
                 Vec::new(),
                 false,
                 &mut Vec::new(),
+                None,
                 None,
             ) {
                 data.push((function, func, funcvar, how, x))
@@ -955,7 +956,7 @@ pub(crate) fn init(
                 let x = function.starts_with("x=");
                 let y = function.starts_with("y=");
                 match kalc_lib::parse::input_var(
-                    if x || y { &function[2..] } else { function },
+                    &format!("({})", if x || y { &function[2..] } else { &function }),
                     &vars,
                     &mut Vec::new(),
                     &mut 0,
@@ -965,6 +966,7 @@ pub(crate) fn init(
                     Vec::new(),
                     false,
                     &mut Vec::new(),
+                    None,
                     None,
                 ) {
                     Ok((func, funcvar, how, _, _)) => {
