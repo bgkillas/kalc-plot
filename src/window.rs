@@ -5,11 +5,13 @@ impl winit::application::ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let window = {
             let window = event_loop.create_window(winit::window::Window::default_attributes());
-            std::rc::Rc::new(window.unwrap())
+            std::sync::Arc::new(window.unwrap())
         };
         window.set_title(&self.name);
         let context = softbuffer::Context::new(window.clone()).unwrap();
-        self.surface_state = Some(softbuffer::Surface::new(&context, window.clone()).unwrap())
+        self.surface_state = Some(softbuffer::Surface::new(&context, window.clone()).unwrap());
+        #[cfg(feature = "skia-vulkan")]
+        self.plot.resumed(event_loop, window)
     }
     fn window_event(
         &mut self,

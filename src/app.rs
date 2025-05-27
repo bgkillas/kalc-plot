@@ -144,6 +144,29 @@ impl App {
             });
     }
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+    #[cfg(feature = "skia-vulkan")]
+    pub(crate) fn main(&mut self, width: u32, height: u32) {
+        let mut b = false;
+        self.plot.keybinds(&self.input_state);
+        self.plot
+            .set_screen(width as f64, height as f64, true, true);
+        #[cfg(feature = "bincode")]
+        if let Some(tiny) = std::mem::take(&mut self.tiny) {
+            self.plot.apply_tiny(tiny);
+        }
+        if let Some(n) = self.data.update(&mut self.plot) {
+            b = true;
+            self.name = n;
+        };
+        self.plot.update();
+        if b {
+            if let Some(w) = &self.surface_state {
+                w.window().set_title(&self.name)
+            }
+        }
+    }
+    #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+    #[cfg(not(feature = "skia-vulkan"))]
     pub(crate) fn main(&mut self, width: u32, height: u32) {
         let mut b = false;
         if let Some(buffer) = &mut self.surface_state {

@@ -125,7 +125,10 @@ struct App {
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     #[cfg_attr(feature = "bincode", serde(skip_serializing, skip_deserializing))]
     surface_state: Option<
-        softbuffer::Surface<std::rc::Rc<winit::window::Window>, std::rc::Rc<winit::window::Window>>,
+        softbuffer::Surface<
+            std::sync::Arc<winit::window::Window>,
+            std::sync::Arc<winit::window::Window>,
+        >,
     >,
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     #[cfg_attr(feature = "bincode", serde(skip_serializing, skip_deserializing))]
