@@ -17,19 +17,19 @@ use rupl::types::{Bound, Complex, Graph, GraphType, Name, Prec};
 #[cfg(feature = "bincode")]
 use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Type {
     pub(crate) val: Val,
     pub(crate) inv: bool,
 }
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) enum Mat {
     D2(Vec<rupl::types::Vec2>),
     D3(Vec<rupl::types::Vec3>),
 }
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) enum Val {
     Num(Option<Complex>),
     Vector(Option<rupl::types::Vec2>),
@@ -39,7 +39,7 @@ pub(crate) enum Val {
 }
 
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Plot {
     pub(crate) func: Vec<NumStr>,
     pub(crate) funcvar: Vec<(String, Vec<NumStr>)>,
@@ -47,7 +47,7 @@ pub(crate) struct Plot {
 }
 
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Data {
     pub(crate) data: Vec<Option<Plot>>,
     pub(crate) options: Options,

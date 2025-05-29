@@ -89,7 +89,6 @@ impl winit::application::ApplicationHandler for App {
                 self.last_touch_positions = self.touch_positions.clone();
             }
             winit::event::WindowEvent::CloseRequested => {
-                #[cfg(feature = "skia-vulkan")]
                 self.plot.close();
                 event_loop.exit();
             }
