@@ -49,7 +49,7 @@ pub(crate) struct Plot {
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
 #[derive(Clone)]
 pub(crate) struct Data {
-    pub(crate) data: Vec<Plot>,
+    pub(crate) data: Vec<Option<Plot>>,
     pub(crate) options: Options,
     pub(crate) vars: Vec<Variable>,
     pub(crate) blacklist: Vec<usize>,
@@ -120,7 +120,6 @@ impl Data {
             }
             Bound::Width(_, _, _) => unreachable!(),
         }
-        plot.reset_3d_if_changed()
     }
     pub(crate) fn update_name(
         &mut self,
@@ -181,6 +180,7 @@ impl Data {
                 }
             })
             .filter_map(|data| {
+                let Some(data) = data else { return None };
                 Some(match &data.graph_type.val {
                     Val::Num(n) => {
                         if let Some(c) = n {
@@ -425,6 +425,7 @@ impl Data {
                     }
                 })
                 .filter_map(|data| {
+                    let Some(data) = data else { return None };
                     Some(if let Val::Num(Some(c)) = data.graph_type.val {
                         (
                             GraphType::Constant(c, data.graph_type.inv),
@@ -540,6 +541,7 @@ impl Data {
                     }
                 })
                 .filter_map(|data| {
+                    let Some(data) = data else { return None };
                     Some(if let Val::Num(Some(c)) = data.graph_type.val {
                         (
                             GraphType::Constant(c, data.graph_type.inv),
@@ -660,6 +662,7 @@ impl Data {
                 }
             })
             .filter_map(|data| {
+                let Some(data) = data else { return None };
                 Some(match &data.graph_type.val {
                     Val::Num(n) => {
                         if let Some(c) = n {
@@ -915,7 +918,7 @@ pub(crate) fn init(
     function: &str,
     options: &mut Options,
     mut vars: Vec<Variable>,
-) -> Result<(Vec<Plot>, Vec<(Vec<String>, String)>, HowGraphing), &'static str> {
+) -> Result<(Vec<Option<Plot>>, Vec<(Vec<String>, String)>, HowGraphing), &'static str> {
     let mut function = function.to_string();
     let mut split = vec![take_vars(&mut function, options, &mut vars)];
     let data = if function.contains(';') {
@@ -928,22 +931,32 @@ pub(crate) fn init(
             first = false;
             let x = function.starts_with("x=");
             let y = function.starts_with("y=");
-            if let Ok((func, funcvar, how, _, _)) = kalc_lib::parse::input_var(
-                &format!("({})", if x || y { &function[2..] } else { &function }),
-                &vars,
-                &mut Vec::new(),
-                &mut 0,
-                *options,
-                false,
-                0,
-                Vec::new(),
-                false,
-                &mut Vec::new(),
-                None,
-                None,
-            ) {
-                data.push((function, func, funcvar, how, x))
-            }
+            data.push(
+                if let Ok((func, funcvar, how, _, _)) = kalc_lib::parse::input_var(
+                    &format!("({})", if x || y { &function[2..] } else { &function }),
+                    &vars,
+                    &mut Vec::new(),
+                    &mut 0,
+                    *options,
+                    false,
+                    0,
+                    Vec::new(),
+                    false,
+                    &mut Vec::new(),
+                    None,
+                    None,
+                ) {
+                    (function, func, funcvar, how, x)
+                } else {
+                    (
+                        function.to_string(),
+                        Vec::new(),
+                        Vec::new(),
+                        Default::default(),
+                        x,
+                    )
+                },
+            );
         }
         data
     } else {
@@ -951,7 +964,7 @@ pub(crate) fn init(
             .split('#')
             .collect::<Vec<&str>>()
             .into_par_iter()
-            .filter_map(|function| {
+            .map(|function| {
                 let x = function.starts_with("x=");
                 let y = function.starts_with("y=");
                 match kalc_lib::parse::input_var(
@@ -968,10 +981,14 @@ pub(crate) fn init(
                     None,
                     None,
                 ) {
-                    Ok((func, funcvar, how, _, _)) => {
-                        Some((function.to_string(), func, funcvar, how, x))
-                    }
-                    Err(_) => None,
+                    Ok((func, funcvar, how, _, _)) => (function.to_string(), func, funcvar, how, x),
+                    Err(_) => (
+                        function.to_string(),
+                        Vec::new(),
+                        Vec::new(),
+                        Default::default(),
+                        x,
+                    ),
                 }
             })
             .collect::<Vec<(
@@ -989,10 +1006,10 @@ pub(crate) fn init(
         .iter()
         .find_map(|d| if d.3.graph { Some(d.3) } else { None })
         .unwrap_or(data[0].3);
-    let (a, b): (Vec<Plot>, Vec<String>) = data
+    let (a, b): (Vec<Option<Plot>>, Vec<String>) = data
         .into_par_iter()
         .filter(|(_, _, _, a, _)| (a.x && a.y) == (how.x && how.y) || !a.graph)
-        .filter_map(|(name, func, funcvar, how, b)| {
+        .map(|(name, func, funcvar, how, b)| {
             let x = NumStr::new(Number::new(options));
             let (f, fv) = match (how.x, how.y) {
                 (true, true) => (
@@ -1072,22 +1089,23 @@ pub(crate) fn init(
                     }
                 }
                 Ok(_) | Err(_) => {
-                    return None;
+                    return (None, name);
                 }
             };
-            Some((
-                Plot {
+            (
+                Some(Plot {
                     func,
                     funcvar,
                     graph_type,
-                },
+                }),
                 name,
-            ))
+            )
         })
         .unzip();
-    if a.iter()
-        .all(|a| matches!(a.graph_type.val, Val::Matrix(Some(Mat::D3(_)))))
-    {
+    if a.iter().all(|data| {
+        let Some(data) = data else { return true };
+        matches!(data.graph_type.val, Val::Matrix(Some(Mat::D3(_))))
+    }) {
         how.x = true;
         how.y = true;
     };

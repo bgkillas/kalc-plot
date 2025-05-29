@@ -20,6 +20,9 @@ impl App {
         let mut side = false;
         let (data, names, graphing_mode) =
             if let Ok(a) = init(&function, &mut options, vars.clone()) {
+                if a.0.iter().any(|a| a.is_none()) {
+                    side = true
+                }
                 a
             } else {
                 side = true;
@@ -49,20 +52,20 @@ impl App {
         } else {
             data.generate_2d(options.xr.0, options.xr.1, options.samples_2d)
         };
-        let mut names = get_names(&graph, names);
+        let names = get_names(&graph, names);
         if options.vxr.0 != 0.0 || options.vxr.1 != 0.0 {
             options.xr = options.vxr;
         }
         if options.vyr.0 != 0.0 || options.vyr.1 != 0.0 {
             options.yr = options.vyr;
         }
+        if options.vzr.0 != 0.0 || options.vzr.1 != 0.0 {
+            options.zr = options.vzr;
+        }
         #[cfg(feature = "bincode")]
         let b = side && tiny.is_none();
         #[cfg(not(feature = "bincode"))]
         let b = side;
-        if b {
-            names = vec![rupl::types::Name::new("".to_string())]
-        }
         let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);
         plot.tab_complete = tab_complete;
         #[cfg(feature = "bincode")]

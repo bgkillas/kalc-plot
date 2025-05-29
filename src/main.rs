@@ -14,10 +14,11 @@ use std::io::Read;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use std::io::Write;
 fn main() {
-    let args = args().collect::<Vec<String>>();
+    let mut args = args().collect::<Vec<String>>();
+    args.remove(0);
     let s = String::new();
     let function = args.last().unwrap_or(&s);
-    let data = if args.len() > 2 && args[1] == "-d" && cfg!(feature = "bincode") {
+    let data = if args.len() > 1 && args[0] == "-d" && cfg!(feature = "bincode") {
         #[cfg(feature = "bincode")]
         {
             let mut stdin = std::io::stdin().lock();
@@ -191,18 +192,23 @@ pub(crate) fn get_names(graph: &[GraphType], names: Vec<(Vec<String>, String)>) 
             }
         }
     }
+    let mut graph = graph.iter();
     names
         .into_iter()
-        .zip(graph.iter())
-        .map(|((vars, name), data)| {
-            let (real, imag) = ri(data);
-            let show = if real && imag {
-                Show::Complex
-            } else if imag {
-                Show::Imag
-            } else {
-                Show::Real
-            };
+        .map(|(vars, name)| {
+            let show = graph
+                .next()
+                .map(|data| {
+                    let (real, imag) = ri(data);
+                    if real && imag {
+                        Show::Complex
+                    } else if imag {
+                        Show::Imag
+                    } else {
+                        Show::Real
+                    }
+                })
+                .unwrap_or(Show::None);
             Name { name, show, vars }
         })
         .collect()
