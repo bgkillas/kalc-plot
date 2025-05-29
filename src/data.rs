@@ -120,6 +120,7 @@ impl Data {
             }
             Bound::Width(_, _, _) => unreachable!(),
         }
+        plot.reset_3d_if_changed()
     }
     pub(crate) fn update_name(
         &mut self,
@@ -148,9 +149,8 @@ impl Data {
             i += 1;
         }
         let func = func.join("#").replace(";#", ";");
-        let how;
         let new_name;
-        (self.data, new_name, how) = init(&func, &mut self.options, self.vars.clone()).unwrap_or((
+        (self.data, new_name, _) = init(&func, &mut self.options, self.vars.clone()).unwrap_or((
             Vec::new(),
             Vec::new(),
             HowGraphing::default(),
@@ -158,7 +158,6 @@ impl Data {
         if !new_name.is_empty() || name.is_empty() {
             *names = Some(new_name);
         }
-        plot.set_is_3d(how.x && how.y && how.graph);
         *ret = Some(func);
     }
     pub(crate) fn generate_3d(
