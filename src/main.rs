@@ -108,9 +108,12 @@ fn main() {
             {
                 let bytes = &app.plot.get_png(width as u32, height as u32);
                 if f == "-" {
-                    std::io::stdout().lock().write_all(&bytes).unwrap()
+                    std::io::stdout()
+                        .lock()
+                        .write_all(bytes.as_bytes())
+                        .unwrap()
                 } else {
-                    std::fs::write(f, &bytes).unwrap()
+                    std::fs::write(f, bytes.as_bytes()).unwrap()
                 }
             }
         }

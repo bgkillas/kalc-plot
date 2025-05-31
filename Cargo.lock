@@ -442,6 +442,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "bdf2"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fb5d0d43ad03d4956daac7b87714ace19d9e343ac1df99732ba8155fc49f347"
+dependencies = [
+ "bit-set",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "bindgen"
 version = "0.71.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2896,6 +2906,7 @@ dependencies = [
  "arboard",
  "ash",
  "base64",
+ "bdf2",
  "bitcode",
  "egui",
  "rayon",

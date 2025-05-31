@@ -556,13 +556,7 @@ impl Data {
     pub(crate) fn generate_2d(&self, start: f64, end: f64, len: usize) -> (Vec<GraphType>, bool) {
         let data: Vec<(GraphType, bool)> = (0..self.data.len())
             .into_par_iter()
-            .filter_map(|i| {
-                if self.blacklist.contains(&i) {
-                    None
-                } else {
-                    Some(i)
-                }
-            })
+            .filter(|i| !self.blacklist.contains(i))
             .filter_map(|i| self.get_2d(i, start, end, len))
             .collect();
         let complex = data.iter().any(|(_, b)| *b);
