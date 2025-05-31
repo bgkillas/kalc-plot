@@ -9,6 +9,14 @@ impl App {
             window.set_title(&self.name);
         }
     }
+    #[cfg(feature = "skia-vulkan")]
+    pub(crate) fn surface_state(&self) -> &Option<rupl::skia_vulkan::renderer::VulkanRenderer> {
+        &self.plot.renderer
+    }
+    #[cfg(not(feature = "skia-vulkan"))]
+    pub(crate) fn surface_state(&mut self) {
+        self.surface_state
+    }
 }
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 impl winit::application::ApplicationHandler for App {
@@ -18,8 +26,11 @@ impl winit::application::ApplicationHandler for App {
             std::sync::Arc::new(window.unwrap())
         };
         self.set_title(&window);
-        let context = softbuffer::Context::new(window.clone()).unwrap();
-        self.surface_state = Some(softbuffer::Surface::new(&context, window.clone()).unwrap());
+        #[cfg(not(feature = "skia-vulkan"))]
+        {
+            let context = softbuffer::Context::new(window.clone()).unwrap();
+            self.surface_state = Some(softbuffer::Surface::new(&context, window.clone()).unwrap());
+        }
         #[cfg(feature = "skia-vulkan")]
         self.plot.resumed(event_loop, window)
     }
@@ -30,25 +41,26 @@ impl winit::application::ApplicationHandler for App {
         event: winit::event::WindowEvent,
     ) {
         match event {
-            winit::event::WindowEvent::Resized(d) => {
-                let Some(state) = &mut self.surface_state else {
+            winit::event::WindowEvent::Resized(_d) => {
+                let Some(state) = self.surface_state() else {
                     return;
                 };
                 if state.window().id() != window {
                     return;
                 }
-                #[cfg(feature = "skia-vulkan")]
-                self.plot.resize();
                 state.window().request_redraw();
+                #[cfg(not(feature = "skia-vulkan"))]
                 state
                     .resize(
-                        std::num::NonZeroU32::new(d.width).unwrap(),
-                        std::num::NonZeroU32::new(d.height).unwrap(),
+                        std::num::NonZeroU32::new(_d.width).unwrap(),
+                        std::num::NonZeroU32::new(_d.height).unwrap(),
                     )
                     .unwrap();
+                #[cfg(feature = "skia-vulkan")]
+                self.plot.resize();
             }
             winit::event::WindowEvent::RedrawRequested => {
-                let Some(state) = &mut self.surface_state else {
+                let Some(state) = self.surface_state() else {
                     return;
                 };
                 if state.window().id() != window {
@@ -100,7 +112,7 @@ impl winit::application::ApplicationHandler for App {
             }
             winit::event::WindowEvent::KeyboardInput { event, .. } => {
                 if event.state.is_pressed() {
-                    let Some(state) = &mut self.surface_state else {
+                    let Some(state) = self.surface_state() else {
                         return;
                     };
                     if state.window().id() != window {
@@ -112,7 +124,7 @@ impl winit::application::ApplicationHandler for App {
             }
             winit::event::WindowEvent::MouseInput { state, button, .. } => match button {
                 winit::event::MouseButton::Left => {
-                    let Some(s) = &mut self.surface_state else {
+                    let Some(s) = self.surface_state() else {
                         return;
                     };
                     if s.window().id() != window {
@@ -122,7 +134,7 @@ impl winit::application::ApplicationHandler for App {
                     self.input_state.pointer = state.is_pressed().then_some(true);
                 }
                 winit::event::MouseButton::Right => {
-                    let Some(s) = &mut self.surface_state else {
+                    let Some(s) = self.surface_state() else {
                         return;
                     };
                     if s.window().id() != window {
@@ -138,7 +150,7 @@ impl winit::application::ApplicationHandler for App {
                 self.input_state.pointer_right = None;
             }
             winit::event::WindowEvent::CursorMoved { position, .. } => {
-                let Some(s) = &mut self.surface_state else {
+                let Some(s) = self.surface_state() else {
                     return;
                 };
                 if s.window().id() != window {
@@ -155,7 +167,7 @@ impl winit::application::ApplicationHandler for App {
                 self.input_state.pointer_pos = Some(rupl::types::Vec2::new(position.x, position.y));
             }
             winit::event::WindowEvent::MouseWheel { delta, .. } => {
-                let Some(s) = &mut self.surface_state else {
+                let Some(s) = self.surface_state() else {
                     return;
                 };
                 if s.window().id() != window {
@@ -172,7 +184,7 @@ impl winit::application::ApplicationHandler for App {
                 };
             }
             winit::event::WindowEvent::ModifiersChanged(modifiers) => {
-                let Some(s) = &mut self.surface_state else {
+                let Some(s) = self.surface_state() else {
                     return;
                 };
                 if s.window().id() != window {
@@ -187,7 +199,7 @@ impl winit::application::ApplicationHandler for App {
                 self.input_state.modifiers.command = modifiers.state().super_key();
             }
             winit::event::WindowEvent::PanGesture { delta, .. } => {
-                let Some(s) = &mut self.surface_state else {
+                let Some(s) = self.surface_state() else {
                     return;
                 };
                 if s.window().id() != window {
@@ -207,7 +219,7 @@ impl winit::application::ApplicationHandler for App {
             winit::event::WindowEvent::PinchGesture {
                 delta: zoom_delta, ..
             } => {
-                let Some(s) = &mut self.surface_state else {
+                let Some(s) = self.surface_state() else {
                     return;
                 };
                 if s.window().id() != window {
@@ -229,7 +241,7 @@ impl winit::application::ApplicationHandler for App {
                 id,
                 ..
             }) => {
-                let Some(s) = &mut self.surface_state else {
+                let Some(s) = self.surface_state() else {
                     return;
                 };
                 if s.window().id() != window {
@@ -257,6 +269,13 @@ impl winit::application::ApplicationHandler for App {
         }
     }
     fn suspended(&mut self, _: &winit::event_loop::ActiveEventLoop) {
-        self.surface_state = None
+        #[cfg(not(feature = "skia-vulkan"))]
+        {
+            self.surface_state = None
+        }
+        #[cfg(feature = "skia-vulkan")]
+        {
+            self.plot.renderer = None
+        }
     }
 }

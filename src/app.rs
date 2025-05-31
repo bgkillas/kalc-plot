@@ -116,6 +116,7 @@ impl App {
             #[cfg(feature = "bincode")]
             tiny,
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            #[cfg(not(feature = "skia-vulkan"))]
             surface_state: None,
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             input_state: rupl::types::InputState::default(),
@@ -163,8 +164,8 @@ impl App {
         };
         self.plot.update();
         if b {
-            if let Some(w) = &self.surface_state {
-                self.set_title(w.window());
+            if let Some(w) = &self.plot.renderer {
+                self.set_title(&w.window);
             }
         }
     }

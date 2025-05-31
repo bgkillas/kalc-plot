@@ -124,6 +124,7 @@ struct App {
     #[cfg(feature = "bincode")]
     tiny: Option<rupl::types::GraphTiny>,
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+    #[cfg(not(feature = "skia-vulkan"))]
     #[cfg_attr(feature = "bincode", serde(skip_serializing, skip_deserializing))]
     surface_state: Option<
         softbuffer::Surface<
