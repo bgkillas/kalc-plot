@@ -14,8 +14,15 @@ impl App {
         &self.plot.renderer
     }
     #[cfg(not(feature = "skia-vulkan"))]
-    pub(crate) fn surface_state(&mut self) {
-        self.surface_state
+    pub(crate) fn surface_state(
+        &mut self,
+    ) -> &mut Option<
+        softbuffer::Surface<
+            std::sync::Arc<winit::window::Window>,
+            std::sync::Arc<winit::window::Window>,
+        >,
+    > {
+        &mut self.surface_state
     }
 }
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
@@ -150,18 +157,18 @@ impl winit::application::ApplicationHandler for App {
                 self.input_state.pointer_right = None;
             }
             winit::event::WindowEvent::CursorMoved { position, .. } => {
+                let bool = self.input_state.pointer.is_some()
+                    || (self.input_state.pointer_right.is_some()
+                        && matches!(self.plot.menu, rupl::types::Menu::Side))
+                    || (!self.plot.is_3d
+                        && (!self.plot.disable_coord || self.plot.ruler_pos.is_some()));
                 let Some(s) = self.surface_state() else {
                     return;
                 };
                 if s.window().id() != window {
                     return;
                 }
-                if self.input_state.pointer.is_some()
-                    || (self.input_state.pointer_right.is_some()
-                        && matches!(self.plot.menu, rupl::types::Menu::Side))
-                    || (!self.plot.is_3d
-                        && (!self.plot.disable_coord || self.plot.ruler_pos.is_some()))
-                {
+                if bool {
                     s.window().request_redraw();
                 }
                 self.input_state.pointer_pos = Some(rupl::types::Vec2::new(position.x, position.y));
@@ -184,13 +191,14 @@ impl winit::application::ApplicationHandler for App {
                 };
             }
             winit::event::WindowEvent::ModifiersChanged(modifiers) => {
+                let empty = self.input_state.keys_pressed.is_empty();
                 let Some(s) = self.surface_state() else {
                     return;
                 };
                 if s.window().id() != window {
                     return;
                 }
-                if !self.input_state.keys_pressed.is_empty() {
+                if !empty {
                     s.window().request_redraw();
                 }
                 self.input_state.modifiers.alt = modifiers.state().alt_key();
