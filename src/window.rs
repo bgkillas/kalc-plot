@@ -30,7 +30,7 @@ impl winit::application::ApplicationHandler for App {
         event: winit::event::WindowEvent,
     ) {
         match event {
-            winit::event::WindowEvent::Resized(_) => {
+            winit::event::WindowEvent::Resized(d) => {
                 let Some(state) = &mut self.surface_state else {
                     return;
                 };
@@ -39,7 +39,13 @@ impl winit::application::ApplicationHandler for App {
                 }
                 #[cfg(feature = "skia-vulkan")]
                 self.plot.resize();
-                state.window().request_redraw()
+                state.window().request_redraw();
+                state
+                    .resize(
+                        std::num::NonZeroU32::new(d.width).unwrap(),
+                        std::num::NonZeroU32::new(d.height).unwrap(),
+                    )
+                    .unwrap();
             }
             winit::event::WindowEvent::RedrawRequested => {
                 let Some(state) = &mut self.surface_state else {
@@ -48,18 +54,10 @@ impl winit::application::ApplicationHandler for App {
                 if state.window().id() != window {
                     return;
                 }
-                #[cfg(not(feature = "skia-vulkan"))]
                 let (width, height) = {
                     let size = state.window().inner_size();
                     (size.width, size.height)
                 };
-                #[cfg(not(feature = "skia-vulkan"))]
-                state
-                    .resize(
-                        std::num::NonZeroU32::new(width).unwrap(),
-                        std::num::NonZeroU32::new(height).unwrap(),
-                    )
-                    .unwrap();
                 if self.touch_positions.len() > 1
                     && self.touch_positions.len() == self.last_touch_positions.len()
                 {
@@ -91,10 +89,7 @@ impl winit::application::ApplicationHandler for App {
                     self.input_state.pointer = Some(self.last_touch_positions.is_empty());
                     self.input_state.pointer_pos = self.touch_positions.values().next().copied();
                 }
-                #[cfg(not(feature = "skia-vulkan"))]
                 self.main(width, height);
-                #[cfg(feature = "skia-vulkan")]
-                self.main();
                 self.input_state.reset();
                 self.last_touch_positions = self.touch_positions.clone();
             }
