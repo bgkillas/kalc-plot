@@ -927,7 +927,7 @@ pub(crate) fn init(
             };
             let graph_type = match do_math(f, *options, fv) {
                 Ok(Num(c)) if !how.graph => Type {
-                    val: Val::Num(Some(compact_constant(c.number))),
+                    val: Val::Num(Some(compact_constant(*c))),
                     inv: !b,
                 },
                 Ok(Num(_)) => Type {
@@ -1020,7 +1020,7 @@ pub(crate) fn init(
     }
     Ok((a, v, how))
 }
-fn compact_constant(c: rug::Complex) -> Complex {
+fn compact_constant(c: Number) -> Complex {
     match (
         c.real().is_zero() && c.real().is_finite(),
         c.imag().is_zero() && c.imag().is_finite(),
