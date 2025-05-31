@@ -112,7 +112,7 @@ impl Data {
                     Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x, y),
                     Prec::Slice(p) => {
                         let l = (p * self.options.samples_2d as f64) as usize;
-                        self.generate_3d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x)
+                        self.generate_2d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x)
                     }
                 };
                 apply_names(&data, complex, plot);
@@ -179,526 +179,50 @@ impl Data {
                     Some(&self.data[i])
                 }
             })
-            .filter_map(|data| {
-                let Some(data) = data else { return None };
-                Some(match &data.graph_type.val {
-                    Val::Num(n) => {
-                        if let Some(c) = n {
-                            (
-                                GraphType::Constant(*c, data.graph_type.inv),
-                                matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
-                            )
-                        } else {
-                            let data = (0..=leny)
-                                .into_par_iter()
-                                .flat_map(|j| {
-                                    let y = starty + j as f64 * dy;
-                                    let y = NumStr::new(Number::from_f64(y, &self.options));
-                                    let mut modified = place_var(data.func.clone(), "y", y.clone());
-                                    let mut modifiedvars =
-                                        place_funcvar(data.funcvar.clone(), "y", y);
-                                    simplify(&mut modified, &mut modifiedvars, self.options);
-                                    let mut data = Vec::with_capacity(lenx + 1);
-                                    for i in 0..=lenx {
-                                        let x = startx + i as f64 * dx;
-                                        let x = NumStr::new(Number::from_f64(x, &self.options));
-                                        data.push(
-                                            if let Ok(Num(n)) = do_math(
-                                                place_var(modified.clone(), "x", x.clone()),
-                                                self.options,
-                                                place_funcvar(modifiedvars.clone(), "x", x),
-                                            ) {
-                                                Complex::Complex(
-                                                    n.number.real().to_f64(),
-                                                    n.number.imag().to_f64(),
-                                                )
-                                            } else {
-                                                Complex::Complex(f64::NAN, f64::NAN)
-                                            },
-                                        )
-                                    }
-                                    data
-                                })
-                                .collect::<Vec<Complex>>();
-                            let (a, b) = compact(data);
-                            (GraphType::Width3D(a, startx, starty, endx, endy), b)
-                        }
-                    }
-                    Val::Vector(v) => {
-                        if let Some(v) = v {
-                            (GraphType::Point(*v), false)
-                        } else {
-                            let data = (0..=leny)
-                                .into_par_iter()
-                                .flat_map(|j| {
-                                    let y = starty + j as f64 * dy;
-                                    let y = NumStr::new(Number::from_f64(y, &self.options));
-                                    let mut modified = place_var(data.func.clone(), "y", y.clone());
-                                    let mut modifiedvars =
-                                        place_funcvar(data.funcvar.clone(), "y", y);
-                                    simplify(&mut modified, &mut modifiedvars, self.options);
-                                    let mut data = Vec::with_capacity(lenx + 1);
-                                    for i in 0..=lenx {
-                                        let x = startx + i as f64 * dx;
-                                        let x = NumStr::new(Number::from_f64(x, &self.options));
-                                        data.push(
-                                            if let Ok(Vector(n)) = do_math(
-                                                place_var(modified.clone(), "x", x.clone()),
-                                                self.options,
-                                                place_funcvar(modifiedvars.clone(), "x", x),
-                                            ) {
-                                                if n.len() != 2 {
-                                                    (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
-                                                } else {
-                                                    (
-                                                        n[0].number.real().to_f64(),
-                                                        Complex::Complex(
-                                                            n[1].number.real().to_f64(),
-                                                            n[1].number.real().to_f64(),
-                                                        ),
-                                                    )
-                                                }
-                                            } else {
-                                                (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
-                                            },
-                                        )
-                                    }
-                                    data
-                                })
-                                .collect::<Vec<(f64, Complex)>>();
-                            let (a, b) = compact_coord(data);
-                            (GraphType::Coord(a), b)
-                        }
-                    }
-                    Val::Vector3D => {
-                        let data = (0..=leny)
-                            .into_par_iter()
-                            .flat_map(|j| {
-                                let y = starty + j as f64 * dy;
-                                let y = NumStr::new(Number::from_f64(y, &self.options));
-                                let mut modified = place_var(data.func.clone(), "y", y.clone());
-                                let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
-                                simplify(&mut modified, &mut modifiedvars, self.options);
-                                let mut data = Vec::with_capacity(lenx + 1);
-                                for i in 0..=lenx {
-                                    let x = startx + i as f64 * dx;
-                                    let x = NumStr::new(Number::from_f64(x, &self.options));
-                                    data.push(
-                                        if let Ok(Vector(n)) = do_math(
-                                            place_var(modified.clone(), "x", x.clone()),
-                                            self.options,
-                                            place_funcvar(modifiedvars.clone(), "x", x),
-                                        ) {
-                                            if n.len() != 3 {
-                                                (
-                                                    f64::NAN,
-                                                    f64::NAN,
-                                                    Complex::Complex(f64::NAN, f64::NAN),
-                                                )
-                                            } else {
-                                                (
-                                                    n[0].number.real().to_f64(),
-                                                    n[1].number.real().to_f64(),
-                                                    Complex::Complex(
-                                                        n[2].number.real().to_f64(),
-                                                        n[2].number.imag().to_f64(),
-                                                    ),
-                                                )
-                                            }
-                                        } else {
-                                            (
-                                                f64::NAN,
-                                                f64::NAN,
-                                                Complex::Complex(f64::NAN, f64::NAN),
-                                            )
-                                        },
-                                    )
-                                }
-                                data
-                            })
-                            .collect::<Vec<(f64, f64, Complex)>>();
-                        let (a, b) = compact_coord3d(data);
-                        (GraphType::Coord3D(a), b)
-                    }
-                    Val::List => {
-                        let mut ndata: Vec<Vec<(f64, f64, Complex)>> =
-                            Vec::with_capacity((leny + 1) * (lenx + 1));
-                        for j in 0..=leny {
-                            let ys = starty + j as f64 * dy;
-                            let y = NumStr::new(Number::from_f64(ys, &self.options));
-                            let mut modified = place_var(data.func.clone(), "y", y.clone());
-                            let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
-                            simplify(&mut modified, &mut modifiedvars, self.options);
-                            for i in 0..=lenx {
-                                let xs = startx + i as f64 * dx;
-                                let x = NumStr::new(Number::from_f64(xs, &self.options));
-                                if let Ok(Vector(v)) = do_math(
-                                    place_var(modified.clone(), "x", x.clone()),
-                                    self.options,
-                                    place_funcvar(modifiedvars.clone(), "x", x),
-                                ) {
-                                    let mut v = v.into_iter();
-                                    ndata.extend(vec![
-                                        Vec::new();
-                                        v.len().saturating_sub(ndata.len())
-                                    ]);
-                                    for data in ndata.iter_mut() {
-                                        let n = v
-                                            .next()
-                                            .map(|n| {
-                                                (
-                                                    xs,
-                                                    ys,
-                                                    Complex::Complex(
-                                                        n.number.real().to_f64(),
-                                                        n.number.imag().to_f64(),
-                                                    ),
-                                                )
-                                            })
-                                            .unwrap_or((
-                                                f64::NAN,
-                                                f64::NAN,
-                                                Complex::Complex(f64::NAN, f64::NAN),
-                                            ));
-                                        data.push(n)
-                                    }
-                                }
-                            }
-                        }
-                        let mut b = false;
-                        (
-                            GraphType::List(
-                                ndata
-                                    .into_iter()
-                                    .map(|data| {
-                                        let (a, c) = compact_coord3d(data);
-                                        b |= c;
-                                        GraphType::Coord3D(a)
-                                    })
-                                    .collect(),
-                            ),
-                            b,
-                        )
-                    }
-                    Val::Matrix(m) => {
-                        if let Some(Mat::D3(m)) = m {
-                            (
-                                GraphType::Coord3D(
-                                    m.iter().map(|m| (m.x, m.y, Complex::Real(m.z))).collect(),
-                                ),
-                                false,
-                            )
-                        } else {
-                            return None;
-                        }
-                    }
-                })
-            })
+            .filter_map(|data| self.get_3d(data, startx, starty, endx, endy, lenx, leny, dx, dy))
             .collect::<Vec<(GraphType, bool)>>();
         let complex = data.iter().any(|(_, b)| *b);
         (data.into_iter().map(|(a, _)| a).collect(), complex)
     }
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn generate_3d_slice(
+    pub fn get_3d(
         &self,
+        data: &Option<Plot>,
         startx: f64,
         starty: f64,
         endx: f64,
         endy: f64,
         lenx: usize,
         leny: usize,
-        slice: isize,
-        view_x: bool,
-    ) -> (Vec<GraphType>, bool) {
-        let dx = (endx - startx) / lenx as f64;
-        let dy = (endy - starty) / leny as f64;
-        let data = if view_x {
-            let ys = starty + (slice as f64 + leny as f64 / 2.0) * dy;
-            let y = NumStr::new(Number::from_f64(ys, &self.options));
-            (0..self.data.len())
-                .into_par_iter()
-                .filter_map(|i| {
-                    if self.blacklist.contains(&i) {
-                        None
-                    } else {
-                        Some(&self.data[i])
-                    }
-                })
-                .filter_map(|data| {
-                    let Some(data) = data else { return None };
-                    Some(if let Val::Num(Some(c)) = data.graph_type.val {
-                        (
-                            GraphType::Constant(c, data.graph_type.inv),
-                            matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
-                        )
-                    } else {
-                        let mut modified = place_var(data.func.clone(), "y", y.clone());
-                        let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y.clone());
-                        simplify(&mut modified, &mut modifiedvars, self.options);
-                        match &data.graph_type.val {
-                            Val::Num(_) => {
-                                let data = (0..=lenx)
-                                    .into_par_iter()
-                                    .map(|i| {
-                                        let x = startx + i as f64 * dx;
-                                        let x = NumStr::new(Number::from_f64(x, &self.options));
-                                        if let Ok(Num(n)) = do_math(
-                                            place_var(modified.clone(), "x", x.clone()),
-                                            self.options,
-                                            place_funcvar(modifiedvars.clone(), "x", x),
-                                        ) {
-                                            Complex::Complex(
-                                                n.number.real().to_f64(),
-                                                n.number.imag().to_f64(),
-                                            )
-                                        } else {
-                                            Complex::Complex(f64::NAN, f64::NAN)
-                                        }
-                                    })
-                                    .collect::<Vec<Complex>>();
-                                let (a, b) = compact(data);
-                                (GraphType::Width3D(a, startx, starty, endx, endy), b)
-                            }
-                            Val::Vector(_) => return None,
-                            Val::Vector3D => return None,
-                            Val::List => {
-                                let mut ndata: Vec<Vec<(f64, Complex)>> =
-                                    Vec::with_capacity(lenx + 1);
-                                for i in 0..=lenx {
-                                    let xv = startx + i as f64 * dx;
-                                    let x = NumStr::new(Number::from_f64(xv, &self.options));
-                                    if let Ok(Vector(v)) = do_math(
+        dx: f64,
+        dy: f64,
+    ) -> Option<(GraphType, bool)> {
+        let Some(data) = data else { return None };
+        let ret = match &data.graph_type.val {
+            Val::Num(n) => {
+                if let Some(c) = n {
+                    (
+                        GraphType::Constant(*c, data.graph_type.inv),
+                        matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
+                    )
+                } else {
+                    let data = (0..=leny)
+                        .into_par_iter()
+                        .flat_map(|j| {
+                            let y = starty + j as f64 * dy;
+                            let y = NumStr::new(Number::from_f64(y, &self.options));
+                            let mut modified = place_var(data.func.clone(), "y", y.clone());
+                            let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
+                            simplify(&mut modified, &mut modifiedvars, self.options);
+                            let mut data = Vec::with_capacity(lenx + 1);
+                            for i in 0..=lenx {
+                                let x = startx + i as f64 * dx;
+                                let x = NumStr::new(Number::from_f64(x, &self.options));
+                                data.push(
+                                    if let Ok(Num(n)) = do_math(
                                         place_var(modified.clone(), "x", x.clone()),
                                         self.options,
                                         place_funcvar(modifiedvars.clone(), "x", x),
-                                    ) {
-                                        let mut v = v.into_iter();
-                                        ndata.extend(vec![
-                                            Vec::new();
-                                            v.len().saturating_sub(ndata.len())
-                                        ]);
-                                        for data in ndata.iter_mut() {
-                                            let n = v
-                                                .next()
-                                                .map(|n| {
-                                                    (
-                                                        xv,
-                                                        Complex::Complex(
-                                                            n.number.real().to_f64(),
-                                                            n.number.imag().to_f64(),
-                                                        ),
-                                                    )
-                                                })
-                                                .unwrap_or((
-                                                    f64::NAN,
-                                                    Complex::Complex(f64::NAN, f64::NAN),
-                                                ));
-                                            data.push(n)
-                                        }
-                                    }
-                                }
-                                let mut b = false;
-                                (
-                                    GraphType::List(
-                                        ndata
-                                            .into_iter()
-                                            .map(|data| {
-                                                let (a, c) = compact_coord(data);
-                                                b |= c;
-                                                GraphType::Coord(a)
-                                            })
-                                            .collect(),
-                                    ),
-                                    b,
-                                )
-                            }
-                            Val::Matrix(m) => {
-                                if let Some(Mat::D2(m)) = m {
-                                    (
-                                        GraphType::Coord(
-                                            m.iter().map(|m| (m.x, Complex::Real(m.y))).collect(),
-                                        ),
-                                        false,
-                                    )
-                                } else {
-                                    return None;
-                                }
-                            }
-                        }
-                    })
-                })
-                .collect::<Vec<(GraphType, bool)>>()
-        } else {
-            let xs = startx + (slice as f64 + lenx as f64 / 2.0) * dx;
-            let x = NumStr::new(Number::from_f64(xs, &self.options));
-            (0..self.data.len())
-                .into_par_iter()
-                .filter_map(|i| {
-                    if self.blacklist.contains(&i) {
-                        None
-                    } else {
-                        Some(&self.data[i])
-                    }
-                })
-                .filter_map(|data| {
-                    let Some(data) = data else { return None };
-                    Some(if let Val::Num(Some(c)) = data.graph_type.val {
-                        (
-                            GraphType::Constant(c, data.graph_type.inv),
-                            matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
-                        )
-                    } else {
-                        let mut modified = place_var(data.func.clone(), "x", x.clone());
-                        let mut modifiedvars = place_funcvar(data.funcvar.clone(), "x", x.clone());
-                        simplify(&mut modified, &mut modifiedvars, self.options);
-                        match &data.graph_type.val {
-                            Val::Num(_) => {
-                                let data = (0..=leny)
-                                    .into_par_iter()
-                                    .map(|i| {
-                                        let y = starty + i as f64 * dy;
-                                        let y = NumStr::new(Number::from_f64(y, &self.options));
-                                        if let Ok(Num(n)) = do_math(
-                                            place_var(modified.clone(), "y", y.clone()),
-                                            self.options,
-                                            place_funcvar(modifiedvars.clone(), "y", y),
-                                        ) {
-                                            Complex::Complex(
-                                                n.number.real().to_f64(),
-                                                n.number.imag().to_f64(),
-                                            )
-                                        } else {
-                                            Complex::Complex(f64::NAN, f64::NAN)
-                                        }
-                                    })
-                                    .collect::<Vec<Complex>>();
-                                let (a, b) = compact(data);
-                                (GraphType::Width3D(a, startx, starty, endx, endy), b)
-                            }
-                            Val::Vector(_) => return None,
-                            Val::Vector3D => return None,
-                            Val::List => {
-                                let mut ndata: Vec<Vec<(f64, f64, Complex)>> =
-                                    Vec::with_capacity(leny + 1);
-                                for i in 0..=leny {
-                                    let xv = starty + i as f64 * dx;
-                                    let x = NumStr::new(Number::from_f64(xv, &self.options));
-                                    if let Ok(Vector(v)) = do_math(
-                                        place_var(modified.clone(), "y", x.clone()),
-                                        self.options,
-                                        place_funcvar(modifiedvars.clone(), "y", x),
-                                    ) {
-                                        let mut v = v.into_iter();
-                                        ndata.extend(vec![
-                                            Vec::new();
-                                            v.len().saturating_sub(ndata.len())
-                                        ]);
-                                        for data in ndata.iter_mut() {
-                                            let n = v
-                                                .next()
-                                                .map(|n| {
-                                                    (
-                                                        xs,
-                                                        xv,
-                                                        Complex::Complex(
-                                                            n.number.real().to_f64(),
-                                                            n.number.imag().to_f64(),
-                                                        ),
-                                                    )
-                                                })
-                                                .unwrap_or((
-                                                    f64::NAN,
-                                                    f64::NAN,
-                                                    Complex::Complex(f64::NAN, f64::NAN),
-                                                ));
-                                            data.push(n)
-                                        }
-                                    }
-                                }
-                                let mut b = false;
-                                (
-                                    GraphType::List(
-                                        ndata
-                                            .into_iter()
-                                            .map(|data| {
-                                                let (a, c) = compact_coord3d(data);
-                                                b |= c;
-                                                GraphType::Coord3D(a)
-                                            })
-                                            .collect(),
-                                    ),
-                                    b,
-                                )
-                            }
-                            Val::Matrix(m) => {
-                                if let Some(Mat::D2(m)) = m {
-                                    (
-                                        GraphType::Coord(
-                                            m.iter().map(|m| (m.x, Complex::Real(m.y))).collect(),
-                                        ),
-                                        false,
-                                    )
-                                } else {
-                                    return None;
-                                }
-                            }
-                        }
-                    })
-                })
-                .collect::<Vec<(GraphType, bool)>>()
-        };
-        let complex = data.iter().any(|(_, b)| *b);
-        (data.into_iter().map(|(a, _)| a).collect(), complex)
-    }
-    pub(crate) fn generate_2d(&self, start: f64, end: f64, len: usize) -> (Vec<GraphType>, bool) {
-        let dx = (end - start) / len as f64;
-        let data = (0..self.data.len())
-            .into_par_iter()
-            .filter_map(|i| {
-                if self.blacklist.contains(&i) {
-                    None
-                } else {
-                    Some(&self.data[i])
-                }
-            })
-            .filter_map(|data| {
-                let Some(data) = data else { return None };
-                Some(match &data.graph_type.val {
-                    Val::Num(n) => {
-                        if let Some(c) = n {
-                            (
-                                GraphType::Constant(*c, data.graph_type.inv),
-                                matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
-                            )
-                        } else if data.graph_type.inv {
-                            let data = (0..=len)
-                                .into_par_iter()
-                                .map(|i| {
-                                    let xv = start + i as f64 * dx;
-                                    let x = NumStr::new(Number::from_f64(xv, &self.options));
-                                    if let Ok(Num(n)) = do_math(
-                                        place_var(data.func.clone(), "y", x.clone()),
-                                        self.options,
-                                        place_funcvar(data.funcvar.clone(), "y", x),
-                                    ) {
-                                        (n.number.real().to_f64(), Complex::Complex(xv, 0.0))
-                                    } else {
-                                        (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
-                                    }
-                                })
-                                .collect::<Vec<(f64, Complex)>>();
-                            let (a, b) = compact_coord(data);
-                            (GraphType::Coord(a), b)
-                        } else {
-                            let data = (0..=len)
-                                .into_par_iter()
-                                .map(|i| {
-                                    let x = start + i as f64 * dx;
-                                    let x = NumStr::new(Number::from_f64(x, &self.options));
-                                    if let Ok(Num(n)) = do_math(
-                                        place_var(data.func.clone(), "x", x.clone()),
-                                        self.options,
-                                        place_funcvar(data.funcvar.clone(), "x", x),
                                     ) {
                                         Complex::Complex(
                                             n.number.real().to_f64(),
@@ -706,26 +230,37 @@ impl Data {
                                         )
                                     } else {
                                         Complex::Complex(f64::NAN, f64::NAN)
-                                    }
-                                })
-                                .collect::<Vec<Complex>>();
-                            let (a, b) = compact(data);
-                            (GraphType::Width(a, start, end), b)
-                        }
-                    }
-                    Val::Vector(v) => {
-                        if let Some(v) = v {
-                            (GraphType::Point(*v), false)
-                        } else {
-                            let data = (0..=len)
-                                .into_par_iter()
-                                .map(|i| {
-                                    let x = start + i as f64 * dx;
-                                    let x = NumStr::new(Number::from_f64(x, &self.options));
+                                    },
+                                )
+                            }
+                            data
+                        })
+                        .collect::<Vec<Complex>>();
+                    let (a, b) = compact(data);
+                    (GraphType::Width3D(a, startx, starty, endx, endy), b)
+                }
+            }
+            Val::Vector(v) => {
+                if let Some(v) = v {
+                    (GraphType::Point(*v), false)
+                } else {
+                    let data = (0..=leny)
+                        .into_par_iter()
+                        .flat_map(|j| {
+                            let y = starty + j as f64 * dy;
+                            let y = NumStr::new(Number::from_f64(y, &self.options));
+                            let mut modified = place_var(data.func.clone(), "y", y.clone());
+                            let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
+                            simplify(&mut modified, &mut modifiedvars, self.options);
+                            let mut data = Vec::with_capacity(lenx + 1);
+                            for i in 0..=lenx {
+                                let x = startx + i as f64 * dx;
+                                let x = NumStr::new(Number::from_f64(x, &self.options));
+                                data.push(
                                     if let Ok(Vector(n)) = do_math(
-                                        place_var(data.func.clone(), "x", x.clone()),
+                                        place_var(modified.clone(), "x", x.clone()),
                                         self.options,
-                                        place_funcvar(data.funcvar.clone(), "x", x),
+                                        place_funcvar(modifiedvars.clone(), "x", x),
                                     ) {
                                         if n.len() != 2 {
                                             (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
@@ -734,29 +269,40 @@ impl Data {
                                                 n[0].number.real().to_f64(),
                                                 Complex::Complex(
                                                     n[1].number.real().to_f64(),
-                                                    n[1].number.imag().to_f64(),
+                                                    n[1].number.real().to_f64(),
                                                 ),
                                             )
                                         }
                                     } else {
                                         (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
-                                    }
-                                })
-                                .collect::<Vec<(f64, Complex)>>();
-                            let (a, b) = compact_coord(data);
-                            (GraphType::Coord(a), b)
-                        }
-                    }
-                    Val::Vector3D => {
-                        let data = (0..=len)
-                            .into_par_iter()
-                            .map(|i| {
-                                let x = start + i as f64 * dx;
-                                let x = NumStr::new(Number::from_f64(x, &self.options));
+                                    },
+                                )
+                            }
+                            data
+                        })
+                        .collect::<Vec<(f64, Complex)>>();
+                    let (a, b) = compact_coord(data);
+                    (GraphType::Coord(a), b)
+                }
+            }
+            Val::Vector3D => {
+                let data = (0..=leny)
+                    .into_par_iter()
+                    .flat_map(|j| {
+                        let y = starty + j as f64 * dy;
+                        let y = NumStr::new(Number::from_f64(y, &self.options));
+                        let mut modified = place_var(data.func.clone(), "y", y.clone());
+                        let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
+                        simplify(&mut modified, &mut modifiedvars, self.options);
+                        let mut data = Vec::with_capacity(lenx + 1);
+                        for i in 0..=lenx {
+                            let x = startx + i as f64 * dx;
+                            let x = NumStr::new(Number::from_f64(x, &self.options));
+                            data.push(
                                 if let Ok(Vector(n)) = do_math(
-                                    place_var(data.func.clone(), "x", x.clone()),
+                                    place_var(modified.clone(), "x", x.clone()),
                                     self.options,
-                                    place_funcvar(data.funcvar.clone(), "x", x),
+                                    place_funcvar(modifiedvars.clone(), "x", x),
                                 ) {
                                     if n.len() != 3 {
                                         (f64::NAN, f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
@@ -772,50 +318,181 @@ impl Data {
                                     }
                                 } else {
                                     (f64::NAN, f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
-                                }
-                            })
-                            .collect::<Vec<(f64, f64, Complex)>>();
-                        let (a, b) = compact_coord3d(data);
-                        (GraphType::Coord3D(a), b)
-                    }
-                    Val::List => {
-                        if data.graph_type.inv {
-                            let mut ndata: Vec<Vec<(f64, Complex)>> = Vec::with_capacity(len + 1);
-                            for i in 0..=len {
-                                let xv = start + i as f64 * dx;
-                                let x = NumStr::new(Number::from_f64(xv, &self.options));
-                                if let Ok(Vector(v)) = do_math(
-                                    place_var(data.func.clone(), "y", x.clone()),
-                                    self.options,
-                                    place_funcvar(data.funcvar.clone(), "y", x),
-                                ) {
-                                    let mut v = v.into_iter();
-                                    ndata.extend(vec![
-                                        Vec::new();
-                                        v.len().saturating_sub(ndata.len())
-                                    ]);
-                                    for data in ndata.iter_mut() {
-                                        let n = v
-                                            .next()
-                                            .map(|n| (n.number.real().to_f64(), Complex::Real(xv)))
-                                            .unwrap_or((f64::NAN, Complex::Real(f64::NAN)));
-                                        data.push(n)
-                                    }
-                                }
-                            }
-                            (
-                                GraphType::List(ndata.into_iter().map(GraphType::Coord).collect()),
-                                false,
+                                },
                             )
-                        } else {
-                            let mut ndata: Vec<Vec<(f64, Complex)>> = Vec::new();
-                            for i in 0..=len {
-                                let xv = start + i as f64 * dx;
+                        }
+                        data
+                    })
+                    .collect::<Vec<(f64, f64, Complex)>>();
+                let (a, b) = compact_coord3d(data);
+                (GraphType::Coord3D(a), b)
+            }
+            Val::List => {
+                let mut ndata: Vec<Vec<(f64, f64, Complex)>> =
+                    Vec::with_capacity((leny + 1) * (lenx + 1));
+                for j in 0..=leny {
+                    let ys = starty + j as f64 * dy;
+                    let y = NumStr::new(Number::from_f64(ys, &self.options));
+                    let mut modified = place_var(data.func.clone(), "y", y.clone());
+                    let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
+                    simplify(&mut modified, &mut modifiedvars, self.options);
+                    for i in 0..=lenx {
+                        let xs = startx + i as f64 * dx;
+                        let x = NumStr::new(Number::from_f64(xs, &self.options));
+                        if let Ok(Vector(v)) = do_math(
+                            place_var(modified.clone(), "x", x.clone()),
+                            self.options,
+                            place_funcvar(modifiedvars.clone(), "x", x),
+                        ) {
+                            let mut v = v.into_iter();
+                            ndata.extend(vec![Vec::new(); v.len().saturating_sub(ndata.len())]);
+                            for data in ndata.iter_mut() {
+                                let n = v
+                                    .next()
+                                    .map(|n| {
+                                        (
+                                            xs,
+                                            ys,
+                                            Complex::Complex(
+                                                n.number.real().to_f64(),
+                                                n.number.imag().to_f64(),
+                                            ),
+                                        )
+                                    })
+                                    .unwrap_or((
+                                        f64::NAN,
+                                        f64::NAN,
+                                        Complex::Complex(f64::NAN, f64::NAN),
+                                    ));
+                                data.push(n)
+                            }
+                        }
+                    }
+                }
+                let mut b = false;
+                (
+                    GraphType::List(
+                        ndata
+                            .into_iter()
+                            .map(|data| {
+                                let (a, c) = compact_coord3d(data);
+                                b |= c;
+                                GraphType::Coord3D(a)
+                            })
+                            .collect(),
+                    ),
+                    b,
+                )
+            }
+            Val::Matrix(m) => {
+                if let Some(Mat::D3(m)) = m {
+                    (
+                        GraphType::Coord3D(
+                            m.iter().map(|m| (m.x, m.y, Complex::Real(m.z))).collect(),
+                        ),
+                        false,
+                    )
+                } else {
+                    return None;
+                }
+            }
+        };
+        Some(ret)
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn generate_2d_slice(
+        &self,
+        startx: f64,
+        starty: f64,
+        endx: f64,
+        endy: f64,
+        lenx: usize,
+        leny: usize,
+        slice: isize,
+        view_x: bool,
+    ) -> (Vec<GraphType>, bool) {
+        let data = self.get_2d_slice(startx, starty, endx, endy, slice, lenx, leny, view_x);
+        let complex = data.iter().any(|(_, b)| *b);
+        (data.into_iter().map(|(a, _)| a).collect(), complex)
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn get_2d_slice(
+        &self,
+        starx: f64,
+        stary: f64,
+        enx: f64,
+        eny: f64,
+        slice: isize,
+        mut lenx: usize,
+        mut leny: usize,
+        view_x: bool,
+    ) -> Vec<(GraphType, bool)> {
+        let (xstr, ystr, startx, starty, endx, endy) = if view_x {
+            (lenx, leny) = (leny, lenx);
+            ("y", "x", stary, starx, eny, enx)
+        } else {
+            ("x", "y", starx, stary, enx, eny)
+        };
+        let dx = (endx - startx) / lenx as f64;
+        let dy = (endy - starty) / leny as f64;
+        let xs = startx + (slice as f64 + lenx as f64 / 2.0) * dx;
+        let x = NumStr::new(Number::from_f64(xs, &self.options));
+        (0..self.data.len())
+            .into_par_iter()
+            .filter_map(|i| {
+                if self.blacklist.contains(&i) {
+                    None
+                } else {
+                    Some(&self.data[i])
+                }
+            })
+            .filter_map(|data| {
+                let Some(data) = data else { return None };
+                Some(if let Val::Num(Some(c)) = data.graph_type.val {
+                    (
+                        GraphType::Constant(c, data.graph_type.inv),
+                        matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
+                    )
+                } else {
+                    let mut modified = place_var(data.func.clone(), xstr, x.clone());
+                    let mut modifiedvars = place_funcvar(data.funcvar.clone(), xstr, x.clone());
+                    simplify(&mut modified, &mut modifiedvars, self.options);
+                    match &data.graph_type.val {
+                        Val::Num(_) => {
+                            let data = (0..=leny)
+                                .into_par_iter()
+                                .map(|i| {
+                                    let y = starty + i as f64 * dy;
+                                    let y = NumStr::new(Number::from_f64(y, &self.options));
+                                    if let Ok(Num(n)) = do_math(
+                                        place_var(modified.clone(), ystr, y.clone()),
+                                        self.options,
+                                        place_funcvar(modifiedvars.clone(), ystr, y),
+                                    ) {
+                                        Complex::Complex(
+                                            n.number.real().to_f64(),
+                                            n.number.imag().to_f64(),
+                                        )
+                                    } else {
+                                        Complex::Complex(f64::NAN, f64::NAN)
+                                    }
+                                })
+                                .collect::<Vec<Complex>>();
+                            let (a, b) = compact(data);
+                            (GraphType::Width3D(a, starx, stary, enx, eny), b)
+                        }
+                        Val::Vector(_) => return None,
+                        Val::Vector3D => return None,
+                        Val::List => {
+                            let mut ndata: Vec<Vec<(f64, f64, Complex)>> =
+                                Vec::with_capacity(leny + 1);
+                            for i in 0..=leny {
+                                let xv = starty + i as f64 * dx;
                                 let x = NumStr::new(Number::from_f64(xv, &self.options));
                                 if let Ok(Vector(v)) = do_math(
-                                    place_var(data.func.clone(), "x", x.clone()),
+                                    place_var(modified.clone(), ystr, x.clone()),
                                     self.options,
-                                    place_funcvar(data.funcvar.clone(), "x", x),
+                                    place_funcvar(modifiedvars.clone(), ystr, x),
                                 ) {
                                     let mut v = v.into_iter();
                                     ndata.extend(vec![
@@ -827,6 +504,7 @@ impl Data {
                                             .next()
                                             .map(|n| {
                                                 (
+                                                    xs,
                                                     xv,
                                                     Complex::Complex(
                                                         n.number.real().to_f64(),
@@ -835,6 +513,7 @@ impl Data {
                                                 )
                                             })
                                             .unwrap_or((
+                                                f64::NAN,
                                                 f64::NAN,
                                                 Complex::Complex(f64::NAN, f64::NAN),
                                             ));
@@ -848,33 +527,253 @@ impl Data {
                                     ndata
                                         .into_iter()
                                         .map(|data| {
-                                            let (a, c) = compact_coord(data);
+                                            let (a, c) = compact_coord3d(data);
                                             b |= c;
-                                            GraphType::Coord(a)
+                                            GraphType::Coord3D(a)
                                         })
                                         .collect(),
                                 ),
                                 b,
                             )
                         }
-                    }
-                    Val::Matrix(m) => {
-                        if let Some(Mat::D2(m)) = m {
-                            (
-                                GraphType::Coord(
-                                    m.iter().map(|m| (m.x, Complex::Real(m.y))).collect(),
-                                ),
-                                false,
-                            )
-                        } else {
-                            return None;
+                        Val::Matrix(m) => {
+                            if let Some(Mat::D2(m)) = m {
+                                (
+                                    GraphType::Coord(
+                                        m.iter().map(|m| (m.x, Complex::Real(m.y))).collect(),
+                                    ),
+                                    false,
+                                )
+                            } else {
+                                return None;
+                            }
                         }
                     }
                 })
             })
-            .collect::<Vec<(GraphType, bool)>>();
+            .collect::<Vec<(GraphType, bool)>>()
+    }
+    pub(crate) fn generate_2d(&self, start: f64, end: f64, len: usize) -> (Vec<GraphType>, bool) {
+        let data: Vec<(GraphType, bool)> = (0..self.data.len())
+            .into_par_iter()
+            .filter_map(|i| {
+                if self.blacklist.contains(&i) {
+                    None
+                } else {
+                    Some(i)
+                }
+            })
+            .filter_map(|i| self.get_2d(i, start, end, len))
+            .collect();
         let complex = data.iter().any(|(_, b)| *b);
         (data.into_iter().map(|(a, _)| a).collect(), complex)
+    }
+    pub(crate) fn get_2d(
+        &self,
+        i: usize,
+        start: f64,
+        end: f64,
+        len: usize,
+    ) -> Option<(GraphType, bool)> {
+        let dx = (end - start) / len as f64;
+        let Some(data) = &self.data[i] else {
+            return None;
+        };
+        let ret = match &data.graph_type.val {
+            Val::Num(n) => {
+                if let Some(c) = n {
+                    (
+                        GraphType::Constant(*c, data.graph_type.inv),
+                        matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
+                    )
+                } else if data.graph_type.inv {
+                    let data = (0..=len)
+                        .into_par_iter()
+                        .map(|i| {
+                            let xv = start + i as f64 * dx;
+                            let x = NumStr::new(Number::from_f64(xv, &self.options));
+                            if let Ok(Num(n)) = do_math(
+                                place_var(data.func.clone(), "y", x.clone()),
+                                self.options,
+                                place_funcvar(data.funcvar.clone(), "y", x),
+                            ) {
+                                (n.number.real().to_f64(), Complex::Complex(xv, 0.0))
+                            } else {
+                                (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
+                            }
+                        })
+                        .collect::<Vec<(f64, Complex)>>();
+                    let (a, b) = compact_coord(data);
+                    (GraphType::Coord(a), b)
+                } else {
+                    let data = (0..=len)
+                        .into_par_iter()
+                        .map(|i| {
+                            let x = start + i as f64 * dx;
+                            let x = NumStr::new(Number::from_f64(x, &self.options));
+                            if let Ok(Num(n)) = do_math(
+                                place_var(data.func.clone(), "x", x.clone()),
+                                self.options,
+                                place_funcvar(data.funcvar.clone(), "x", x),
+                            ) {
+                                Complex::Complex(n.number.real().to_f64(), n.number.imag().to_f64())
+                            } else {
+                                Complex::Complex(f64::NAN, f64::NAN)
+                            }
+                        })
+                        .collect::<Vec<Complex>>();
+                    let (a, b) = compact(data);
+                    (GraphType::Width(a, start, end), b)
+                }
+            }
+            Val::Vector(v) => {
+                if let Some(v) = v {
+                    (GraphType::Point(*v), false)
+                } else {
+                    let data = (0..=len)
+                        .into_par_iter()
+                        .map(|i| {
+                            let x = start + i as f64 * dx;
+                            let x = NumStr::new(Number::from_f64(x, &self.options));
+                            if let Ok(Vector(n)) = do_math(
+                                place_var(data.func.clone(), "x", x.clone()),
+                                self.options,
+                                place_funcvar(data.funcvar.clone(), "x", x),
+                            ) {
+                                if n.len() != 2 {
+                                    (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
+                                } else {
+                                    (
+                                        n[0].number.real().to_f64(),
+                                        Complex::Complex(
+                                            n[1].number.real().to_f64(),
+                                            n[1].number.imag().to_f64(),
+                                        ),
+                                    )
+                                }
+                            } else {
+                                (f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
+                            }
+                        })
+                        .collect::<Vec<(f64, Complex)>>();
+                    let (a, b) = compact_coord(data);
+                    (GraphType::Coord(a), b)
+                }
+            }
+            Val::Vector3D => {
+                let data = (0..=len)
+                    .into_par_iter()
+                    .map(|i| {
+                        let x = start + i as f64 * dx;
+                        let x = NumStr::new(Number::from_f64(x, &self.options));
+                        if let Ok(Vector(n)) = do_math(
+                            place_var(data.func.clone(), "x", x.clone()),
+                            self.options,
+                            place_funcvar(data.funcvar.clone(), "x", x),
+                        ) {
+                            if n.len() != 3 {
+                                (f64::NAN, f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
+                            } else {
+                                (
+                                    n[0].number.real().to_f64(),
+                                    n[1].number.real().to_f64(),
+                                    Complex::Complex(
+                                        n[2].number.real().to_f64(),
+                                        n[2].number.imag().to_f64(),
+                                    ),
+                                )
+                            }
+                        } else {
+                            (f64::NAN, f64::NAN, Complex::Complex(f64::NAN, f64::NAN))
+                        }
+                    })
+                    .collect::<Vec<(f64, f64, Complex)>>();
+                let (a, b) = compact_coord3d(data);
+                (GraphType::Coord3D(a), b)
+            }
+            Val::List => {
+                if data.graph_type.inv {
+                    let mut ndata: Vec<Vec<(f64, Complex)>> = Vec::with_capacity(len + 1);
+                    for i in 0..=len {
+                        let xv = start + i as f64 * dx;
+                        let x = NumStr::new(Number::from_f64(xv, &self.options));
+                        if let Ok(Vector(v)) = do_math(
+                            place_var(data.func.clone(), "y", x.clone()),
+                            self.options,
+                            place_funcvar(data.funcvar.clone(), "y", x),
+                        ) {
+                            let mut v = v.into_iter();
+                            ndata.extend(vec![Vec::new(); v.len().saturating_sub(ndata.len())]);
+                            for data in ndata.iter_mut() {
+                                let n = v
+                                    .next()
+                                    .map(|n| (n.number.real().to_f64(), Complex::Real(xv)))
+                                    .unwrap_or((f64::NAN, Complex::Real(f64::NAN)));
+                                data.push(n)
+                            }
+                        }
+                    }
+                    (
+                        GraphType::List(ndata.into_iter().map(GraphType::Coord).collect()),
+                        false,
+                    )
+                } else {
+                    let mut ndata: Vec<Vec<(f64, Complex)>> = Vec::new();
+                    for i in 0..=len {
+                        let xv = start + i as f64 * dx;
+                        let x = NumStr::new(Number::from_f64(xv, &self.options));
+                        if let Ok(Vector(v)) = do_math(
+                            place_var(data.func.clone(), "x", x.clone()),
+                            self.options,
+                            place_funcvar(data.funcvar.clone(), "x", x),
+                        ) {
+                            let mut v = v.into_iter();
+                            ndata.extend(vec![Vec::new(); v.len().saturating_sub(ndata.len())]);
+                            for data in ndata.iter_mut() {
+                                let n = v
+                                    .next()
+                                    .map(|n| {
+                                        (
+                                            xv,
+                                            Complex::Complex(
+                                                n.number.real().to_f64(),
+                                                n.number.imag().to_f64(),
+                                            ),
+                                        )
+                                    })
+                                    .unwrap_or((f64::NAN, Complex::Complex(f64::NAN, f64::NAN)));
+                                data.push(n)
+                            }
+                        }
+                    }
+                    let mut b = false;
+                    (
+                        GraphType::List(
+                            ndata
+                                .into_iter()
+                                .map(|data| {
+                                    let (a, c) = compact_coord(data);
+                                    b |= c;
+                                    GraphType::Coord(a)
+                                })
+                                .collect(),
+                        ),
+                        b,
+                    )
+                }
+            }
+            Val::Matrix(m) => {
+                if let Some(Mat::D2(m)) = m {
+                    (
+                        GraphType::Coord(m.iter().map(|m| (m.x, Complex::Real(m.y))).collect()),
+                        false,
+                    )
+                } else {
+                    return None;
+                }
+            }
+        };
+        Some(ret)
     }
 }
 fn take_vars(

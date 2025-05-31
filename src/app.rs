@@ -162,7 +162,7 @@ impl App {
         self.plot.update();
         if b {
             if let Some(w) = &self.surface_state {
-                w.window().set_title(&self.name)
+                self.set_title(w.window());
             }
         }
     }
@@ -188,7 +188,7 @@ impl App {
         }
         if b {
             if let Some(w) = &self.surface_state {
-                w.window().set_title(&self.name)
+                self.set_title(w.window());
             }
         }
     }

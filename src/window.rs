@@ -1,13 +1,23 @@
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use crate::App;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+impl App {
+    pub(crate) fn set_title(&self, window: &std::sync::Arc<winit::window::Window>) {
+        if self.name.is_empty() {
+            window.set_title("kalc-plot");
+        } else {
+            window.set_title(&self.name);
+        }
+    }
+}
+#[cfg(any(feature = "skia", feature = "tiny-skia"))]
 impl winit::application::ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let window = {
             let window = event_loop.create_window(winit::window::Window::default_attributes());
             std::sync::Arc::new(window.unwrap())
         };
-        window.set_title(&self.name);
+        self.set_title(&window);
         let context = softbuffer::Context::new(window.clone()).unwrap();
         self.surface_state = Some(softbuffer::Surface::new(&context, window.clone()).unwrap());
         #[cfg(feature = "skia-vulkan")]
