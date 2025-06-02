@@ -158,8 +158,7 @@ impl winit::application::ApplicationHandler for App {
             }
             winit::event::WindowEvent::CursorMoved { position, .. } => {
                 let bool = self.input_state.pointer.is_some()
-                    || (self.input_state.pointer_right.is_some()
-                        && matches!(self.plot.menu, rupl::types::Menu::Side))
+                    || (self.input_state.pointer_right.is_some() && self.plot.is_drag())
                     || (!self.plot.is_3d
                         && (!self.plot.disable_coord || self.plot.ruler_pos.is_some()));
                 let Some(s) = self.surface_state() else {
