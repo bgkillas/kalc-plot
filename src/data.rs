@@ -242,9 +242,11 @@ impl Data {
             0..self.data.len()
         }
         .into_par_iter()
-        .filter_map(|i| (!self.blacklist.contains(&i)).then(|| &self.data[i]))
-        .filter_map(|data| {
-            let Some(data) = data else { return None };
+        .filter(|i| !self.blacklist.contains(i))
+        .filter_map(|i| {
+            let Some(data) = &self.data[i] else {
+                return None;
+            };
             if !data.graph_type.is_3d_o() {
                 return None;
             }
@@ -521,15 +523,11 @@ impl Data {
             0..self.data.len()
         }
         .into_par_iter()
+        .filter(|i| !self.blacklist.contains(i))
         .filter_map(|i| {
-            if self.blacklist.contains(&i) {
-                None
-            } else {
-                Some(&self.data[i])
-            }
-        })
-        .filter_map(|data| {
-            let Some(data) = data else { return None };
+            let Some(data) = &self.data[i] else {
+                return None;
+            };
             Some(if let Val::Num(Some(c)) = data.graph_type.val {
                 (
                     GraphType::Constant(c, data.graph_type.inv()),
@@ -644,9 +642,9 @@ impl Data {
             0..self.data.len()
         }
         .into_par_iter()
-        .filter_map(|i| (!self.blacklist.contains(&i)).then(|| &self.data[i]))
-        .filter_map(|data| {
-            let Some(data) = data else {
+        .filter(|i| !self.blacklist.contains(i))
+        .filter_map(|i| {
+            let Some(data) = &self.data[i] else {
                 return None;
             };
             match (data.graph_type.is_3d_i(), data.graph_type.on_var()) {
