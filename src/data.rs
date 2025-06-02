@@ -108,7 +108,7 @@ impl Data {
         plot: &mut Graph,
         names: Option<Vec<(Vec<String>, String)>>,
         bound: Bound,
-        mut k: Option<usize>,
+        k: Option<usize>,
     ) {
         self.var = plot.var;
         self.blacklist = plot
@@ -124,9 +124,6 @@ impl Data {
                 _ => None,
             })
             .next();
-        if n.is_none() {
-            k = None;
-        }
         let apply_names =
             |data: &[GraphType], complex: bool, plot: &mut Graph, k: Option<usize>| {
                 if let Some(names) = names {
@@ -156,7 +153,7 @@ impl Data {
                 }
                 let (data, complex) =
                     self.generate_2d(s, e, (p * self.options.samples_2d as f64) as usize, n);
-                apply_names(&data, complex, plot, k);
+                apply_names(&data, complex, plot, n);
                 plot.set_data(data, n);
             }
             Bound::Width3D(sx, sy, ex, ey, p) => {
@@ -175,7 +172,7 @@ impl Data {
                         self.generate_2d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x, n)
                     }
                 };
-                apply_names(&data, complex, plot, k);
+                apply_names(&data, complex, plot, n);
                 plot.set_data(data, n);
             }
             Bound::Width(_, _, _) => unreachable!(),
