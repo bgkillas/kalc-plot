@@ -194,6 +194,7 @@ pub(crate) fn get_names(graph: &[GraphType], names: Vec<(Vec<String>, String)>) 
                 }
                 (a, b)
             }
+            GraphType::None => (false, false),
         }
     }
     let mut graph = graph.iter();

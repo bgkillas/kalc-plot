@@ -242,13 +242,15 @@ impl Data {
             0..self.data.len()
         }
         .into_par_iter()
-        .filter(|i| !self.blacklist.contains(i))
-        .filter_map(|i| {
+        .map(|i| {
+            if self.blacklist.contains(&i) {
+                return (GraphType::None, false);
+            }
             let Some(data) = &self.data[i] else {
-                return None;
+                return (GraphType::None, false);
             };
             if !data.graph_type.is_3d_o() {
-                return None;
+                return (GraphType::None, false);
             }
             match (data.graph_type.is_3d_i(), data.graph_type.on_var()) {
                 (true, false) => self.get_3d(data, startx, starty, endx, endy, lenx, leny),
@@ -258,6 +260,7 @@ impl Data {
                 (false, true) => self.get_2d(data, self.var.x, self.var.y, lenx * leny),
                 (false, false) => None,
             }
+            .unwrap_or((GraphType::None, false))
         })
         .collect::<Vec<(GraphType, bool)>>();
         let complex = data.iter().any(|(_, b)| *b);
@@ -523,12 +526,14 @@ impl Data {
             0..self.data.len()
         }
         .into_par_iter()
-        .filter(|i| !self.blacklist.contains(i))
-        .filter_map(|i| {
+        .map(|i| {
+            if self.blacklist.contains(&i) {
+                return (GraphType::None, false);
+            }
             let Some(data) = &self.data[i] else {
-                return None;
+                return (GraphType::None, false);
             };
-            Some(if let Val::Num(Some(c)) = data.graph_type.val {
+            if let Val::Num(Some(c)) = data.graph_type.val {
                 (
                     GraphType::Constant(c, data.graph_type.inv()),
                     matches!(c, Complex::Complex(_, _) | Complex::Imag(_)),
@@ -561,8 +566,8 @@ impl Data {
                         let (a, b) = compact(data);
                         (GraphType::Width3D(a, starx, stary, enx, eny), b)
                     }
-                    Val::Vector(_) => return None,
-                    Val::Vector3D => return None,
+                    Val::Vector(_) => (GraphType::None, false),
+                    Val::Vector3D => (GraphType::None, false),
                     Val::List => {
                         let mut ndata: Vec<Vec<(f64, f64, Complex)>> = Vec::with_capacity(leny + 1);
                         for i in 0..=leny {
@@ -621,11 +626,11 @@ impl Data {
                                 false,
                             )
                         } else {
-                            return None;
+                            (GraphType::None, false)
                         }
                     }
                 }
-            })
+            }
         })
         .collect::<Vec<(GraphType, bool)>>()
     }
@@ -642,10 +647,12 @@ impl Data {
             0..self.data.len()
         }
         .into_par_iter()
-        .filter(|i| !self.blacklist.contains(i))
-        .filter_map(|i| {
+        .map(|i| {
+            if self.blacklist.contains(&i) {
+                return (GraphType::None, false);
+            }
             let Some(data) = &self.data[i] else {
-                return None;
+                return (GraphType::None, false);
             };
             match (data.graph_type.is_3d_i(), data.graph_type.on_var()) {
                 (true, true) => self.get_3d(
@@ -661,6 +668,7 @@ impl Data {
                 (false, false) => self.get_2d(data, start, end, len),
                 (true, false) => None,
             }
+            .unwrap_or((GraphType::None, false))
         })
         .collect();
         let complex = data.iter().any(|(_, b)| *b);
