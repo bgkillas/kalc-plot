@@ -1826,7 +1826,7 @@ dependencies = [
 
 [[package]]
 name = "kalc-lib"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "fastnum",
  "fastrand",
@@ -1838,7 +1838,7 @@ dependencies = [
 
 [[package]]
 name = "kalc-plot"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bitcode",
  "dirs",
@@ -2856,7 +2856,7 @@ dependencies = [
 
 [[package]]
 name = "rupl"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "arboard",
  "ash",
