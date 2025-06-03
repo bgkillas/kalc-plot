@@ -90,6 +90,7 @@ pub(crate) struct Data {
     pub(crate) vars: Vec<Variable>,
     pub(crate) blacklist: Vec<usize>,
     pub(crate) var: rupl::types::Vec2,
+    pub(crate) count_changed: bool,
 }
 impl Data {
     pub(crate) fn update(&mut self, plot: &mut Graph) -> Option<String> {
@@ -151,29 +152,55 @@ impl Data {
                 if n.is_none() {
                     plot.clear_data();
                 }
-                let (data, complex) =
-                    self.generate_2d(s, e, (p * self.options.samples_2d as f64) as usize, n);
-                apply_names(&data, complex, plot, n);
-                plot.set_data(data, n);
+                let get = || {
+                    let (data, complex) =
+                        self.generate_2d(s, e, (p * self.options.samples_2d as f64) as usize, n);
+                    apply_names(&data, complex, plot, n);
+                    data
+                };
+                if let Some(n) = n {
+                    if self.count_changed {
+                        plot.remove_data(n)
+                    } else {
+                        let data = get();
+                        plot.insert_data(data.into_iter().next().unwrap(), n);
+                    }
+                } else {
+                    let data = get();
+                    plot.set_data(data);
+                }
             }
             Bound::Width3D(sx, sy, ex, ey, p) => {
                 if n.is_none() {
                     plot.clear_data();
                 }
-                let (data, complex) = match p {
-                    Prec::Mult(p) => {
-                        let lx = (p * self.options.samples_3d.0 as f64) as usize;
-                        let ly = (p * self.options.samples_3d.1 as f64) as usize;
-                        self.generate_3d(sx, sy, ex, ey, lx, ly, n)
-                    }
-                    Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x, y, n),
-                    Prec::Slice(p) => {
-                        let l = (p * self.options.samples_2d as f64) as usize;
-                        self.generate_2d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x, n)
-                    }
+                let get = || {
+                    let (data, complex) = match p {
+                        Prec::Mult(p) => {
+                            let lx = (p * self.options.samples_3d.0 as f64) as usize;
+                            let ly = (p * self.options.samples_3d.1 as f64) as usize;
+                            self.generate_3d(sx, sy, ex, ey, lx, ly, n)
+                        }
+                        Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x, y, n),
+                        Prec::Slice(p) => {
+                            let l = (p * self.options.samples_2d as f64) as usize;
+                            self.generate_2d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x, n)
+                        }
+                    };
+                    apply_names(&data, complex, plot, n);
+                    data
                 };
-                apply_names(&data, complex, plot, n);
-                plot.set_data(data, n);
+                if let Some(n) = n {
+                    if self.count_changed {
+                        plot.remove_data(n)
+                    } else {
+                        let data = get();
+                        plot.insert_data(data.into_iter().next().unwrap(), n);
+                    }
+                } else {
+                    let data = get();
+                    plot.set_data(data);
+                }
             }
             Bound::Width(_, _, _) => unreachable!(),
         }
@@ -206,11 +233,13 @@ impl Data {
         }
         let func = func.join("#").replace(";#", ";");
         let new_name;
+        let old_len = self.data.len();
         (self.data, new_name, _) = init(&func, &mut self.options, self.vars.clone()).unwrap_or((
             Vec::new(),
             Vec::new(),
             HowGraphing::default(),
         ));
+        self.count_changed = old_len != self.data.len();
         if !new_name.is_empty() || name.is_empty() {
             *names = Some(new_name);
         }

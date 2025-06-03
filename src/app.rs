@@ -40,6 +40,7 @@ impl App {
             vars,
             blacklist: Vec::new(),
             var: rupl::types::Vec2::new(options.xr.0, options.xr.1),
+            count_changed: false,
         };
         let (graph, complex) = if graphing_mode.x && graphing_mode.y {
             data.generate_3d(
