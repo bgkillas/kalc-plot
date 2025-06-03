@@ -76,5 +76,13 @@ jobs:
            cd kalc-plot
        - name: fmt
          run: cargo fmt --check
-       - name: lint
-         run: cargo clippy
+       - name: lint-vulkan
+         run: cargo clippy --no-default-features --features "skia,skia-vulkan,vulkano-x11,arboard,rayon,bincode,x11"
+       - name: lint-skia
+         run: cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,x11,softbuffer,softbuffer-x11"
+       - name: lint-skia-min
+         run: cargo clippy --no-default-features --features "skia,x11,softbuffer,softbuffer-x11"
+       - name: lint-tiny
+         run: cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,x11,softbuffer,softbuffer-x11"
+       - name: lint-egui
+         run: cargo clippy --no-default-features --features "egui,rayon,bincode"
