@@ -20,17 +20,17 @@ codegen-units=1
 opt-level = 1
 
 [features]
-default=["skia-vulkan", "vulkano-x11","x11", "wayland", "rayon", "bincode", "arboard"]
-#default=["egui","rayon", "bincode", "arboard"]
-#default=["skia-vulkan","wayland", "rayon", "bincode", "arboard"]
-#default=["skia","wayland","softbuffer","softbuffer-wayland", "rayon", "bincode", "arboard"]
-#default=["tiny-skia", "wayland", "softbuffer", "softbuffer-wayland"]
+default=["skia-vulkan", "rug","fastnum", "vulkano-x11","x11", "wayland", "rayon", "bincode", "arboard"]
+#default=["egui","rug","fastnum","rayon", "bincode", "arboard"]
+#default=["skia-vulkan","rug","fastnum","wayland", "rayon", "bincode", "arboard"]
+#default=["skia","rug","fastnum","wayland","softbuffer","softbuffer-wayland", "rayon", "bincode", "arboard"]
+#default=["tiny-skia","rug","fastnum", "wayland", "softbuffer", "softbuffer-wayland"]
 egui=["dep:egui","dep:eframe","rupl/egui"]
 skia=["rupl/skia" ,"rupl/winit", "dep:winit"]
 tiny-skia=["rupl/tiny-skia" ,"rupl/winit", "dep:winit"]
 softbuffer = ["dep:softbuffer"]
-rayon=["dep:rayon", "rupl/rayon"]
-bincode=["dep:bitcode", "dep:serde", "rupl/serde", "dep:dirs"]
+rayon=["dep:rayon", "rupl/rayon", "kalc-lib/rayon"]
+bincode=["dep:bitcode", "dep:serde", "rupl/serde", "dep:dirs", "kalc-lib/serde"]
 arboard=["rupl/arboard"]
 force-cross=["kalc-lib/force-cross"]
 system-libs=["kalc-lib/system-libs"]
@@ -40,6 +40,8 @@ wayland=["winit/wayland"]
 vulkano-x11=["rupl/vulkano-x11"]
 softbuffer-x11=["softbuffer/x11"]
 softbuffer-wayland=["softbuffer/wayland"]
+rug=["kalc-lib/rug"]
+fastnum=["kalc-lib/fastnum"]
 
 [dependencies]
 egui={version="0.31.1",default-features = false,optional=true}
@@ -51,4 +53,4 @@ dirs={version="6.0.0", optional=true}
 bitcode = {version="0.6.6",features = ["serde"],optional = true}
 serde = {version = "1.0.219", features = ["derive"], optional = true}
 rupl={version = "0.1.1",path="../rupl",default-features = false}
-kalc-lib={version="1.5.0",path="../kalc-lib"}
+kalc-lib={version="1.5.0",default-features=false,features = ["fastrand"],path="../kalc-lib"}
