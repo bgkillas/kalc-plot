@@ -109,6 +109,12 @@ impl winit::application::ApplicationHandler for App {
                     self.input_state.pointer_pos = self.touch_positions.values().next().copied();
                 }
                 self.main(width, height);
+                if self.plot.request_redraw {
+                    let Some(state) = self.surface_state() else {
+                        return;
+                    };
+                    state.window().request_redraw();
+                }
                 self.input_state.reset();
                 self.last_touch_positions = self.touch_positions.clone();
             }
