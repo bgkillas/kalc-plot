@@ -69,6 +69,13 @@ jobs:
             python
             openssl
             git
+            gn
+            fontconfig
+            libpng
+            expat
+            freetype2
+            llvm
+            ninja
           msystem: MINGW64
        - name: fmt
          shell: msys2 {0}
