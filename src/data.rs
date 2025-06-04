@@ -32,7 +32,7 @@ impl Type {
         }
     }
     fn is_3d_i(&self) -> bool {
-        self.how.x && self.how.y
+        (self.how.x && self.how.y) || matches!(self.val, Val::Matrix(_))
     }
     fn is_3d_o(&self) -> bool {
         match &self.val {
