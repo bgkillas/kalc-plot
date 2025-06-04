@@ -13,7 +13,7 @@ use kalc_lib::units::{Colors, HowGraphing, Number, Options, Variable};
 use rayon::iter::IntoParallelIterator;
 #[cfg(feature = "rayon")]
 use rayon::iter::ParallelIterator;
-use rupl::types::{Bound, Complex, Graph, GraphType, Name, Prec};
+use rupl::types::{Bound, Complex, Graph, GraphType, Prec};
 #[cfg(feature = "bincode")]
 use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
@@ -96,8 +96,8 @@ impl Data {
     pub(crate) fn update(&mut self, plot: &mut Graph) -> Option<String> {
         let mut names = None;
         let mut ret = None;
-        if let Some(name) = plot.update_res_name() {
-            self.update_name(plot, &mut names, &mut ret, &name);
+        if plot.is_name_modified() {
+            self.update_name(plot, &mut names, &mut ret);
         }
         if let Some((bound, n)) = plot.update_res() {
             self.update_data(plot, names, bound, n);
@@ -210,8 +210,10 @@ impl Data {
         plot: &mut Graph,
         names: &mut Option<Vec<(Vec<String>, String)>>,
         ret: &mut Option<String>,
-        name: &[Name],
     ) {
+        let Some(name) = plot.update_res_name() else {
+            unreachable!()
+        };
         let mut i = 0;
         let mut func = Vec::with_capacity(name.len());
         for n in name {
