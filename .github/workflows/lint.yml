@@ -69,10 +69,10 @@ jobs:
             python
             openssl
             git
-            mingw-w64-gn
-            mingw-w64-fontconfig
-            mingw-w64-libpng
-            mingw-w64-freetype
+            mingw-w64-x86_64-gn
+            mingw-w64-x86_64-fontconfig
+            mingw-w64-x86_64-libpng
+            mingw-w64-x86_64-freetype
             expat
             llvm
             ninja
