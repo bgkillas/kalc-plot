@@ -66,6 +66,8 @@ jobs:
             mingw-w64-x86_64-clang
             m4
             make
+            python
+            openssl
           msystem: MINGW64
        - name: fmt
          shell: msys2 {0}
