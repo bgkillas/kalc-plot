@@ -119,15 +119,15 @@ jobs:
        - name: fmt
          run: cargo fmt --check
        - name: lint-vulkan
-         run: cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,wayland,rug,fastnum"
+         run: cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,rug,fastnum" --target x86_64-pc-windows-gnu
        - name: lint-skia
-         run: cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,wayland,softbuffer,softbuffer-wayland,rug,fastnum"
+         run: cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,softbuffer,rug,fastnum" --target x86_64-pc-windows-gnu
        - name: lint-skia-min
-         run: cargo clippy --no-default-features --features "skia,wayland,softbuffer,softbuffer-wayland,rug,fastnum"
+         run: cargo clippy --no-default-features --features "skia,softbuffer,rug,fastnum" --target x86_64-pc-windows-gnu
        - name: lint-tiny
-         run: cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,wayland,softbuffer,softbuffer-wayland,rug,fastnum"
+         run: cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum" --target x86_64-pc-windows-gnu
        - name: lint-egui
-         run: cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum"
+         run: cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum" --target x86_64-pc-windows-gnu
   build-macos:
      runs-on: macos-latest
      steps:
@@ -141,12 +141,12 @@ jobs:
        - name: fmt
          run: cargo fmt --check
        - name: lint-vulkan
-         run: cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,wayland,rug,fastnum"
+         run: cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,rug,fastnum"
        - name: lint-skia
-         run: cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,wayland,softbuffer,softbuffer-wayland,rug,fastnum"
+         run: cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,softbuffer,rug,fastnum"
        - name: lint-skia-min
-         run: cargo clippy --no-default-features --features "skia,wayland,softbuffer,softbuffer-wayland,rug,fastnum"
+         run: cargo clippy --no-default-features --features "skia,softbuffer,rug,fastnum"
        - name: lint-tiny
-         run: cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,wayland,softbuffer,softbuffer-wayland,rug,fastnum"
+         run: cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum"
        - name: lint-egui
          run: cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum"
