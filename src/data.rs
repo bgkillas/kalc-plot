@@ -99,15 +99,16 @@ impl Data {
         if plot.is_name_modified() {
             self.update_name(plot, &mut names, &mut ret);
         }
-        if let Some((bound, n)) = plot.update_res() {
-            self.update_data(plot, names, bound, n);
+        while let Some((bound, n)) = plot.update_res() {
+            //TODO not optimal to compute multiple times
+            self.update_data(plot, &names, bound, n);
         }
         ret
     }
     pub(crate) fn update_data(
         &mut self,
         plot: &mut Graph,
-        names: Option<Vec<(Vec<String>, String)>>,
+        names: &Option<Vec<(Vec<String>, String)>>,
         bound: Bound,
         k: Option<usize>,
     ) {
@@ -141,7 +142,7 @@ impl Data {
                         {
                             a.show = b.show
                         }
-                        plot.is_complex = complex;
+                        plot.set_is_complex(complex);
                     }
                 } else {
                     plot.is_complex |= complex;
@@ -152,7 +153,7 @@ impl Data {
                 if n.is_none() {
                     plot.clear_data();
                 }
-                let get = || {
+                let mut get = || {
                     let (data, complex) =
                         self.generate_2d(s, e, (p * self.options.samples_2d as f64) as usize, n);
                     apply_names(&data, complex, plot, n);
@@ -174,7 +175,7 @@ impl Data {
                 if n.is_none() {
                     plot.clear_data();
                 }
-                let get = || {
+                let mut get = || {
                     let (data, complex) = match p {
                         Prec::Mult(p) => {
                             let lx = (p * self.options.samples_3d.0 as f64) as usize;

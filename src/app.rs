@@ -55,7 +55,7 @@ impl App {
         } else {
             data.generate_2d(options.xr.0, options.xr.1, options.samples_2d, None)
         };
-        let names = get_names(&graph, names);
+        let names = get_names(&graph, &names);
         if options.vxr.0 != 0.0 || options.vxr.1 != 0.0 {
             options.xr = options.vxr;
         }

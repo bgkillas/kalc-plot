@@ -153,7 +153,7 @@ impl eframe::App for App {
     }
 }
 
-pub(crate) fn get_names(graph: &[GraphType], names: Vec<(Vec<String>, String)>) -> Vec<Name> {
+pub(crate) fn get_names(graph: &[GraphType], names: &[(Vec<String>, String)]) -> Vec<Name> {
     fn ri(data: &GraphType) -> (bool, bool) {
         match data {
             GraphType::Width(data, _, _) => (
@@ -199,7 +199,7 @@ pub(crate) fn get_names(graph: &[GraphType], names: Vec<(Vec<String>, String)>) 
     }
     let mut graph = graph.iter();
     names
-        .into_iter()
+        .iter()
         .map(|(vars, name)| {
             let show = graph
                 .next()
@@ -214,7 +214,11 @@ pub(crate) fn get_names(graph: &[GraphType], names: Vec<(Vec<String>, String)>) 
                     }
                 })
                 .unwrap_or(Show::None);
-            Name { name, show, vars }
+            Name {
+                name: name.to_string(),
+                show,
+                vars: vars.clone(),
+            }
         })
         .collect()
 }
