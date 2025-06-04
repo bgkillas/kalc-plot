@@ -11,7 +11,7 @@ env:
 
 jobs:
   build-egui:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - name: depends
@@ -27,19 +27,11 @@ jobs:
     - name: Run tests egui
       run: cargo test --no-default-features --features "egui,rug,fastnum"
   build-skia:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y \
-        libwayland-dev \
-        libxkbcommon-dev \
-        pkg-config \
-        libudev-dev \
-        libinput-dev \
-        libdrm-dev \
-        libgbm-dev \
-        build-essential
+      run: sudo apt-get update && sudo apt-get install -y libwayland-dev libxkbcommon-dev pkg-config libudev-dev libinput-dev libdrm-dev libgbm-dev build-essential
     - name: depends
       run: |
         cd ..
@@ -59,19 +51,11 @@ jobs:
     - name: Run tests skia
       run: cargo test --no-default-features --features "skia,wayland, softbuffer, softbuffer-wayland,rug,fastnum"
   build-tiny-skia:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y \
-        libwayland-dev \
-        libxkbcommon-dev \
-        pkg-config \
-        libudev-dev \
-        libinput-dev \
-        libdrm-dev \
-        libgbm-dev \
-        build-essential
+      run: sudo apt-get update && sudo apt-get install -y libwayland-dev libxkbcommon-dev pkg-config libudev-dev libinput-dev libdrm-dev libgbm-dev build-essential
     - name: depends
       run: |
         cd ..
@@ -85,19 +69,11 @@ jobs:
     - name: Run tests tiny-skia
       run: cargo test --no-default-features --features "tiny-skia,wayland, softbuffer, softbuffer-wayland,rug,fastnum"
   lint:
-     runs-on: ubuntu-22.04
+     runs-on: ubuntu-latest
      steps:
        - uses: actions/checkout@v4
        - name: Install dependencies
-         run: sudo apt-get update && sudo apt-get install -y \
-           libwayland-dev \
-           libxkbcommon-dev \
-           pkg-config \
-           libudev-dev \
-           libinput-dev \
-           libdrm-dev \
-           libgbm-dev \
-           build-essential
+         run: sudo apt-get update && sudo apt-get install -y libwayland-dev libxkbcommon-dev pkg-config libudev-dev libinput-dev libdrm-dev libgbm-dev build-essential
        - name: depends
          run: |
            cd ..
@@ -126,6 +102,20 @@ jobs:
            git clone https://github.com/bgkillas/rupl
            git clone https://github.com/bgkillas/kalc-lib
            cd kalc-plot
+       - name: Install Rust
+         uses: actions-rs/toolchain@v1
+         with:
+          toolchain: stable
+          target: x86_64-pc-windows-gnu
+          profile: minimal
+          override: true
+       - name: Install MSYS2 and GMP
+         uses: msys2/setup-msys2@v2
+         with:
+          update: true
+          install: >-
+           mingw-w64-x86_64-gmp
+          msystem: MINGW64
        - name: fmt
          run: cargo fmt --check
        - name: lint-vulkan
