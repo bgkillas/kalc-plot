@@ -77,6 +77,13 @@ impl winit::application::ApplicationHandler for App {
                     let size = state.window().inner_size();
                     (size.width, size.height)
                 };
+                #[cfg(not(feature = "skia-vulkan"))]
+                state
+                    .resize(
+                        std::num::NonZeroU32::new(width).unwrap(),
+                        std::num::NonZeroU32::new(height).unwrap(),
+                    )
+                    .unwrap();
                 if self.touch_positions.len() > 1
                     && self.touch_positions.len() == self.last_touch_positions.len()
                 {
@@ -160,8 +167,10 @@ impl winit::application::ApplicationHandler for App {
                 _ => {}
             },
             winit::event::WindowEvent::CursorEntered { .. } => {
-                self.input_state.pointer = None;
-                self.input_state.pointer_right = None;
+                if self.input_state.pointer.is_none() && self.input_state.pointer_right.is_none() {
+                    self.input_state.pointer = None;
+                    self.input_state.pointer_right = None;
+                }
             }
             winit::event::WindowEvent::CursorMoved { position, .. } => {
                 let bool = self.input_state.pointer.is_some()
