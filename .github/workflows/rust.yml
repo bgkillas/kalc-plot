@@ -123,33 +123,39 @@ jobs:
           msystem: MINGW64
        - name: fmt
          shell: msys2 {0}
+         env:
+          PATH: "/c/Users/runneradmin/.cargo/bin:/mingw64/bin:$PATH"
          run: |
-          export PATH="/mingw64/bin:$PATH"
           cargo fmt --check
        - name: lint-vulkan
          shell: msys2 {0}
+         env:
+          PATH: "/c/Users/runneradmin/.cargo/bin:/mingw64/bin:$PATH"
          run: |
-          export PATH="/mingw64/bin:$PATH"
           cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,rug,fastnum" --target x86_64-pc-windows-gnu
        - name: lint-skia
          shell: msys2 {0}
+         env:
+          PATH: "/c/Users/runneradmin/.cargo/bin:/mingw64/bin:$PATH"
          run: |
-          export PATH="/mingw64/bin:$PATH"
           cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,softbuffer,rug,fastnum" --target x86_64-pc-windows-gnu
        - name: lint-skia-min
          shell: msys2 {0}
+         env:
+          PATH: "/c/Users/runneradmin/.cargo/bin:/mingw64/bin:$PATH"
          run: |
-          export PATH="/mingw64/bin:$PATH"
           cargo clippy --no-default-features --features "skia,softbuffer,rug,fastnum" --target x86_64-pc-windows-gnu
        - name: lint-tiny
          shell: msys2 {0}
+         env:
+          PATH: "/c/Users/runneradmin/.cargo/bin:/mingw64/bin:$PATH"
          run: |
-          export PATH="/mingw64/bin:$PATH"
           cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum" --target x86_64-pc-windows-gnu
        - name: lint-egui
          shell: msys2 {0}
+         env:
+          PATH: "/c/Users/runneradmin/.cargo/bin:/mingw64/bin:$PATH"
          run: |
-          export PATH="/mingw64/bin:$PATH"
           cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum" --target x86_64-pc-windows-gnu
   build-macos:
      runs-on: macos-latest
