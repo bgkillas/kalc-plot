@@ -95,7 +95,7 @@ jobs:
       run: cargo build --release --no-default-features --features "skia,skia-vulkan,rug,fastnum"
     - uses: actions/upload-artifact@v4
       with:
-        name: macos-skia-vulkan
+        name: kalc-plot-macos-skia-vulkan
         path: target/release/kalc-plot
     - name: Build skia
       run: cargo build --release --no-default-features --features "skia,arboard,rayon,bincode,rug,fastnum,softbuffer"
@@ -174,7 +174,7 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: kalc-plot-windows-egui
-        path: target/release/kalc-plot
+        path: target/release/kalc-plot.exe
   build-tiny-skia-windows:
     runs-on: windows-latest
     steps:
@@ -230,4 +230,4 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: kalc-plot-windows-tiny-skia
-        path: target/release/kalc-plot
+        path: target/release/kalc-plot.exe
