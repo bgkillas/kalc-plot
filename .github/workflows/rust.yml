@@ -31,7 +31,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y libwayland-dev libxkbcommon-dev pkg-config libudev-dev libinput-dev libdrm-dev libgbm-dev build-essential
+      run: sudo apt-get update && sudo apt-get install -y libwayland-dev libxkbcommon-dev pkg-config libudev-dev libinput-dev libdrm-dev libgbm-dev build-essential libxcb1-dev libx11-dev libx11-xcb-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
     - name: depends
       run: |
         cd ..
@@ -114,20 +114,43 @@ jobs:
          with:
           update: true
           install: >-
-           mingw-w64-x86_64-gmp
+            base-devel
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-gmp
+            mingw-w64-x86_64-mpfr
+            mingw-w64-x86_64-make
           msystem: MINGW64
        - name: fmt
-         run: cargo fmt --check
+         shell: msys2 {0}
+         run: |
+          export PATH="/mingw64/bin:$PATH"
+          cargo fmt --check
        - name: lint-vulkan
-         run: cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,rug,fastnum" --target x86_64-pc-windows-gnu
+         shell: msys2 {0}
+         run: |
+          export PATH="/mingw64/bin:$PATH"
+          cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,rug,fastnum" --target x86_64-pc-windows-gnu
        - name: lint-skia
-         run: cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,softbuffer,rug,fastnum" --target x86_64-pc-windows-gnu
+         shell: msys2 {0}
+         run: |
+          export PATH="/mingw64/bin:$PATH"
+          cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,softbuffer,rug,fastnum" --target x86_64-pc-windows-gnu
        - name: lint-skia-min
-         run: cargo clippy --no-default-features --features "skia,softbuffer,rug,fastnum" --target x86_64-pc-windows-gnu
+         shell: msys2 {0}
+         run: |
+          export PATH="/mingw64/bin:$PATH"
+          cargo clippy --no-default-features --features "skia,softbuffer,rug,fastnum" --target x86_64-pc-windows-gnu
        - name: lint-tiny
-         run: cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum" --target x86_64-pc-windows-gnu
+         shell: msys2 {0}
+         run: |
+          export PATH="/mingw64/bin:$PATH"
+          cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum" --target x86_64-pc-windows-gnu
        - name: lint-egui
-         run: cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum" --target x86_64-pc-windows-gnu
+         shell: msys2 {0}
+         run: |
+          export PATH="/mingw64/bin:$PATH"
+          cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum" --target x86_64-pc-windows-gnu
   build-macos:
      runs-on: macos-latest
      steps:
