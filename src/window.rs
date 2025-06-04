@@ -81,13 +81,14 @@ impl winit::application::ApplicationHandler for App {
                     && self.touch_positions.len() == self.last_touch_positions.len()
                 {
                     fn avg(
-                        vec: &std::collections::hash_map::Values<u64, rupl::types::Vec2>,
+                        vec: std::collections::hash_map::Values<u64, rupl::types::Vec2>,
                     ) -> rupl::types::Vec2 {
-                        vec.clone().copied().sum::<rupl::types::Vec2>() / (vec.len() as f64)
+                        let l = vec.len();
+                        vec.copied().sum::<rupl::types::Vec2>() / (l as f64)
                     }
-                    let cpos = avg(&self.touch_positions.values());
+                    let cpos = avg(self.touch_positions.values());
                     self.input_state.pointer_pos = Some(cpos);
-                    let lpos = avg(&self.last_touch_positions.values());
+                    let lpos = avg(self.last_touch_positions.values());
                     let cdist = self
                         .touch_positions
                         .values()
