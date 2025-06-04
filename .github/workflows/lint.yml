@@ -68,6 +68,7 @@ jobs:
             make
             python
             openssl
+            git
           msystem: MINGW64
        - name: fmt
          shell: msys2 {0}
