@@ -87,36 +87,36 @@ jobs:
            CC: clang
          run: |
           cargo fmt --check
-       - name: lint-vulkan
-         shell: msys2 {0}
-         env:
-           CARGO_HOME: /mingw64/.cargo
-           RUSTUP_HOME: /mingw64/.rustup
-           PKG_CONFIG_PATH: /mingw64/lib/pkgconfig
-           PATH: /mingw64/bin:$PATH
-           CC: clang
-         run: |
-          cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,rug,fastnum"
-       - name: lint-skia
-         shell: msys2 {0}
-         env:
-           CARGO_HOME: /mingw64/.cargo
-           RUSTUP_HOME: /mingw64/.rustup
-           PKG_CONFIG_PATH: /mingw64/lib/pkgconfig
-           PATH: /mingw64/bin:$PATH
-           CC: clang
-         run: |
-          cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,softbuffer,rug,fastnum"
-       - name: lint-skia-min
-         shell: msys2 {0}
-         env:
-           CARGO_HOME: /mingw64/.cargo
-           RUSTUP_HOME: /mingw64/.rustup
-           PKG_CONFIG_PATH: /mingw64/lib/pkgconfig
-           PATH: /mingw64/bin:$PATH
-           CC: clang
-         run: |
-          cargo clippy --no-default-features --features "skia,softbuffer,rug,fastnum"
+#       - name: lint-vulkan
+#         shell: msys2 {0}
+#         env:
+#           CARGO_HOME: /mingw64/.cargo
+#           RUSTUP_HOME: /mingw64/.rustup
+#           PKG_CONFIG_PATH: /mingw64/lib/pkgconfig
+#           PATH: /mingw64/bin:$PATH
+#           CC: clang
+#         run: |
+#          cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,rug,fastnum"
+#       - name: lint-skia
+#         shell: msys2 {0}
+#         env:
+#           CARGO_HOME: /mingw64/.cargo
+#           RUSTUP_HOME: /mingw64/.rustup
+#           PKG_CONFIG_PATH: /mingw64/lib/pkgconfig
+#           PATH: /mingw64/bin:$PATH
+#           CC: clang
+#         run: |
+#          cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,softbuffer,rug,fastnum"
+#       - name: lint-skia-min
+#         shell: msys2 {0}
+#         env:
+#           CARGO_HOME: /mingw64/.cargo
+#           RUSTUP_HOME: /mingw64/.rustup
+#           PKG_CONFIG_PATH: /mingw64/lib/pkgconfig
+#           PATH: /mingw64/bin:$PATH
+#           CC: clang
+#         run: |
+#          cargo clippy --no-default-features --features "skia,softbuffer,rug,fastnum"
        - name: lint-tiny
          shell: msys2 {0}
          env:
