@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  lint:
+  lint-linux:
      runs-on: ubuntu-latest
      steps:
        - uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
          run: cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,wayland,softbuffer,softbuffer-wayland,rug,fastnum"
        - name: lint-egui
          run: cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum"
-  build-windows:
+  lint-windows:
      runs-on: windows-latest
      steps:
        - uses: actions/checkout@v4
@@ -118,7 +118,7 @@ jobs:
            PATH: /mingw64/bin:$PATH
          run: |
           cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum"
-  build-macos:
+  lint-macos:
      runs-on: macos-latest
      steps:
        - uses: actions/checkout@v4
