@@ -98,7 +98,7 @@ jobs:
         name: macos-skia-vulkan
         path: target/release/kalc-plot
     - name: Build skia
-      run: cargo build --release --no-default-features --features "skia,arboard,rayon,bincode,rug,fastnum"
+      run: cargo build --release --no-default-features --features "skia,arboard,rayon,bincode,rug,fastnum,softbuffer"
     - uses: actions/upload-artifact@v4
       with:
         name: macos-skia
