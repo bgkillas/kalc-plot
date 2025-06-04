@@ -1,0 +1,125 @@
+name: release
+
+on: [push, pull_request]
+
+jobs:
+  build-egui-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: depends
+      run: |
+        cd ..
+        git clone https://github.com/bgkillas/rupl
+        git clone https://github.com/bgkillas/kalc-lib
+        cd kalc-plot
+    - name: Build egui-full
+      run: cargo build --release --no-default-features --features "egui,rayon,bincode,rug,fastnum"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: kalc-plot-x86_64-egui
+        path: target/release/kalc-plot
+  build-skia-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y libwayland-dev libxkbcommon-dev pkg-config libudev-dev libinput-dev libdrm-dev libgbm-dev build-essential libxcb1-dev libx11-dev libx11-xcb-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
+    - name: depends
+      run: |
+        cd ..
+        git clone https://github.com/bgkillas/rupl
+        git clone https://github.com/bgkillas/kalc-lib
+        cd kalc-plot
+    - name: deps
+      run: |
+        sudo apt update
+        sudo apt install libfontconfig1-dev libfreetype6-dev
+    - name: Build skia-vulkan
+      run: cargo build --release --no-default-features --features "skia,skia-vulkan,wayland,x11,vulkano-x11,rug,fastnum"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: kalc-plot-x86_64-skia-vulkan
+        path: target/release/kalc-plot
+    - name: Build skia
+      run: cargo build --release --no-default-features --features "skia,arboard,rayon,bincode,x11,wayland,softbuffer,softbuffer-wayland,softbuffer-x11,rug,fastnum"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: kalc-plot-x86_64-skia
+        path: target/release/kalc-plot
+  build-tiny-skia-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y libwayland-dev libxkbcommon-dev pkg-config libudev-dev libinput-dev libdrm-dev libgbm-dev build-essential
+    - name: depends
+      run: |
+        cd ..
+        git clone https://github.com/bgkillas/rupl
+        git clone https://github.com/bgkillas/kalc-lib
+        cd kalc-plot
+    - name: Build tiny-full
+      run: cargo build --release --no-default-features --features "tiny-skia,arboard,rayon,bincode,wayland,x11, softbuffer, softbuffer-wayland, softbuffer-x11,rug,fastnum"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: kalc-plot-x86_64-tiny-skia
+        path: target/release/kalc-plot
+  build-egui-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: depends
+      run: |
+        cd ..
+        git clone https://github.com/bgkillas/rupl
+        git clone https://github.com/bgkillas/kalc-lib
+        cd kalc-plot
+    - name: Build egui-full
+      run: cargo build --release --no-default-features --features "egui,rayon,bincode,rug,fastnum"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: macos-skia-egui
+        path: target/release/kalc-plot
+  build-skia-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: depends
+      run: |
+        cd ..
+        git clone https://github.com/bgkillas/rupl
+        git clone https://github.com/bgkillas/kalc-lib
+        cd kalc-plot
+    - name: deps
+      run: |
+        sudo apt update
+        sudo apt install libfontconfig1-dev libfreetype6-dev
+    - name: Build skia-vulkan
+      run: cargo build --release --no-default-features --features "skia,skia-vulkan,rug,fastnum"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: macos-skia-vulkan
+        path: target/release/kalc-plot
+    - name: Build skia
+      run: cargo build --release --no-default-features --features "skia,arboard,rayon,bincode,rug,fastnum"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: macos-skia
+        path: target/release/kalc-plot
+  build-tiny-skia-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: depends
+      run: |
+        cd ..
+        git clone https://github.com/bgkillas/rupl
+        git clone https://github.com/bgkillas/kalc-lib
+        cd kalc-plot
+    - name: Build tiny-full
+      run: cargo build --release --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: macos-tiny-skia
+        path: target/release/kalc-plot

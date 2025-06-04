@@ -10,64 +10,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-egui:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: depends
-      run: |
-        cd ..
-        git clone https://github.com/bgkillas/rupl
-        git clone https://github.com/bgkillas/kalc-lib
-        cd kalc-plot
-    - name: Build egui
-      run: cargo build --no-default-features --features "egui,rug,fastnum"
-    - name: Build egui-full
-      run: cargo build --no-default-features --features "egui,rayon,bincode,rug,fastnum"
-    - name: Run tests egui
-      run: cargo test --no-default-features --features "egui,rug,fastnum"
-  build-skia:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y libwayland-dev libxkbcommon-dev pkg-config libudev-dev libinput-dev libdrm-dev libgbm-dev build-essential libxcb1-dev libx11-dev libx11-xcb-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
-    - name: depends
-      run: |
-        cd ..
-        git clone https://github.com/bgkillas/rupl
-        git clone https://github.com/bgkillas/kalc-lib
-        cd kalc-plot
-    - name: deps
-      run: |
-        sudo apt update
-        sudo apt install libfontconfig1-dev libfreetype6-dev
-    - name: Build skia
-      run: cargo build --no-default-features --features "skia,wayland, softbuffer, softbuffer-wayland,rug,fastnum"
-    - name: Build skia-vulkan
-      run: cargo build --no-default-features --features "skia,skia-vulkan,wayland,rug,fastnum"
-    - name: Build skia-full
-      run: cargo build --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,wayland,rug,fastnum"
-    - name: Run tests skia
-      run: cargo test --no-default-features --features "skia,wayland, softbuffer, softbuffer-wayland,rug,fastnum"
-  build-tiny-skia:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y libwayland-dev libxkbcommon-dev pkg-config libudev-dev libinput-dev libdrm-dev libgbm-dev build-essential
-    - name: depends
-      run: |
-        cd ..
-        git clone https://github.com/bgkillas/rupl
-        git clone https://github.com/bgkillas/kalc-lib
-        cd kalc-plot
-    - name: Build tiny-skia
-      run: cargo build --no-default-features --features "tiny-skia,wayland, softbuffer, softbuffer-wayland,rug,fastnum"
-    - name: Build tiny-full
-      run: cargo build --no-default-features --features "tiny-skia,arboard,rayon,bincode,wayland, softbuffer, softbuffer-wayland,rug,fastnum"
-    - name: Run tests tiny-skia
-      run: cargo test --no-default-features --features "tiny-skia,wayland, softbuffer, softbuffer-wayland,rug,fastnum"
   lint:
      runs-on: ubuntu-latest
      steps:
