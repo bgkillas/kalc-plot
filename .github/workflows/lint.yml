@@ -25,15 +25,15 @@ jobs:
        - name: fmt
          run: cargo fmt --check
        - name: lint-vulkan
-         run: cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,wayland,rug,fastnum"
+         run: cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,wayland,rug,fastnum" -- -D clippy::all
        - name: lint-skia
-         run: cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,wayland,softbuffer,softbuffer-wayland,rug,fastnum"
+         run: cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,wayland,softbuffer,softbuffer-wayland,rug,fastnum" -- -D clippy::all
        - name: lint-skia-min
-         run: cargo clippy --no-default-features --features "skia,wayland,softbuffer,softbuffer-wayland,rug,fastnum"
+         run: cargo clippy --no-default-features --features "skia,wayland,softbuffer,softbuffer-wayland,rug,fastnum" -- -D clippy::all
        - name: lint-tiny
-         run: cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,wayland,softbuffer,softbuffer-wayland,rug,fastnum"
+         run: cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,wayland,softbuffer,softbuffer-wayland,rug,fastnum" -- -D clippy::all
        - name: lint-egui
-         run: cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum"
+         run: cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum" -- -D clippy::all
   lint-windows:
      runs-on: windows-latest
      steps:
@@ -96,7 +96,7 @@ jobs:
 #           PATH: /mingw64/bin:$PATH
 #           CC: clang
 #         run: |
-#          cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,rug,fastnum"
+#          cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,rug,fastnum" -- -D clippy::all
 #       - name: lint-skia
 #         shell: msys2 {0}
 #         env:
@@ -106,7 +106,7 @@ jobs:
 #           PATH: /mingw64/bin:$PATH
 #           CC: clang
 #         run: |
-#          cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,softbuffer,rug,fastnum"
+#          cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,softbuffer,rug,fastnum" -- -D clippy::all
 #       - name: lint-skia-min
 #         shell: msys2 {0}
 #         env:
@@ -116,7 +116,7 @@ jobs:
 #           PATH: /mingw64/bin:$PATH
 #           CC: clang
 #         run: |
-#          cargo clippy --no-default-features --features "skia,softbuffer,rug,fastnum"
+#          cargo clippy --no-default-features --features "skia,softbuffer,rug,fastnum" -- -D clippy::all
        - name: lint-tiny
          shell: msys2 {0}
          env:
@@ -126,7 +126,7 @@ jobs:
            PATH: /mingw64/bin:$PATH
            CC: clang
          run: |
-          cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum"
+          cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum" -- -D clippy::all
        - name: lint-egui
          shell: msys2 {0}
          env:
@@ -136,7 +136,7 @@ jobs:
            PATH: /mingw64/bin:$PATH
            CC: clang
          run: |
-          cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum"
+          cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum" -- -D clippy::all
   lint-macos:
      runs-on: macos-latest
      steps:
@@ -150,12 +150,12 @@ jobs:
        - name: fmt
          run: cargo fmt --check
        - name: lint-vulkan
-         run: cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,rug,fastnum"
+         run: cargo clippy --no-default-features --features "skia,skia-vulkan,arboard,rayon,bincode,rug,fastnum" -- -D clippy::all
        - name: lint-skia
-         run: cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,softbuffer,rug,fastnum"
+         run: cargo clippy --no-default-features --features "skia,arboard,rayon,bincode,softbuffer,rug,fastnum" -- -D clippy::all
        - name: lint-skia-min
-         run: cargo clippy --no-default-features --features "skia,softbuffer,rug,fastnum"
+         run: cargo clippy --no-default-features --features "skia,softbuffer,rug,fastnum" -- -D clippy::all
        - name: lint-tiny
-         run: cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum"
+         run: cargo clippy --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum" -- -D clippy::all
        - name: lint-egui
-         run: cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum"
+         run: cargo clippy --no-default-features --features "egui,rayon,bincode,rug,fastnum" -- -D clippy::all
