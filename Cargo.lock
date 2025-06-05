@@ -1827,6 +1827,8 @@ dependencies = [
 [[package]]
 name = "kalc-lib"
 version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bae7e5f68acc59423c16f89625be149939d2c90bd458a04b1a8740f16200ca76"
 dependencies = [
  "fastnum",
  "fastrand",
@@ -2857,6 +2859,8 @@ dependencies = [
 [[package]]
 name = "rupl"
 version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4d2fc5fa2e9f39f30ddbbad267fc846b68b65a37cb30e2be3602f8680ecaa5f"
 dependencies = [
  "arboard",
  "ash",
