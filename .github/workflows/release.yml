@@ -173,7 +173,7 @@ jobs:
       run: cargo build --release --no-default-features --features "egui,rayon,bincode,rug,fastnum"
     - uses: actions/upload-artifact@v4
       with:
-        name: kalc-plot-windows-egui
+        name: kalc-plot-egui.exe
         path: target/release/kalc-plot.exe
   build-tiny-skia-windows:
     runs-on: windows-latest
@@ -229,5 +229,5 @@ jobs:
       run: cargo build --release --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum"
     - uses: actions/upload-artifact@v4
       with:
-        name: kalc-plot-windows-tiny-skia
+        name: kalc-plot-tiny-skia.exe
         path: target/release/kalc-plot.exe
