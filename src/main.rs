@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 mod app;
 mod data;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]

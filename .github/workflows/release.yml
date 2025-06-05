@@ -77,10 +77,15 @@ jobs:
         cd kalc-plot
     - name: Build egui-full
       run: cargo build --release --no-default-features --features "egui,rayon,bincode,rug,fastnum"
+    - name: make .app
+      run: |
+        mkdir -p kalc-plot.app/Contents/MacOS
+        cp target/release/kalc-plot kalc-plot.app/Contents/MacOS/
+        cp .github/workflows/Info.plist kalc-plot.app/Contents/
     - uses: actions/upload-artifact@v4
       with:
         name: kalc-plot-macos-egui
-        path: target/release/kalc-plot
+        path: kalc-plot.app
   build-skia-macos:
     runs-on: macos-latest
     steps:
@@ -93,16 +98,26 @@ jobs:
         cd kalc-plot
     - name: Build skia-vulkan
       run: cargo build --release --no-default-features --features "skia,skia-vulkan,rug,fastnum"
+    - name: make .app
+      run: |
+        mkdir -p kalc-plot.app/Contents/MacOS
+        cp target/release/kalc-plot kalc-plot.app/Contents/MacOS/
+        cp .github/workflows/Info.plist kalc-plot.app/Contents/
     - uses: actions/upload-artifact@v4
       with:
         name: kalc-plot-macos-skia-vulkan
-        path: target/release/kalc-plot
+        path: kalc-plot.app
     - name: Build skia
       run: cargo build --release --no-default-features --features "skia,arboard,rayon,bincode,rug,fastnum,softbuffer"
+    - name: make .app
+      run: |
+        mkdir -p kalc-plot.app/Contents/MacOS
+        cp target/release/kalc-plot kalc-plot.app/Contents/MacOS/
+        cp .github/workflows/Info.plist kalc-plot.app/Contents/
     - uses: actions/upload-artifact@v4
       with:
         name: kalc-plot-macos-skia
-        path: target/release/kalc-plot
+        path: kalc-plot.app
   build-tiny-skia-macos:
     runs-on: macos-latest
     steps:
@@ -115,10 +130,15 @@ jobs:
         cd kalc-plot
     - name: Build tiny-full
       run: cargo build --release --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum"
+    - name: make .app
+      run: |
+        mkdir -p kalc-plot.app/Contents/MacOS
+        cp target/release/kalc-plot kalc-plot.app/Contents/MacOS/
+        cp .github/workflows/Info.plist kalc-plot.app/Contents/
     - uses: actions/upload-artifact@v4
       with:
         name: kalc-plot-macos-tiny-skia
-        path: target/release/kalc-plot
+        path: kalc-plot.app
   build-egui-macos_x86_64:
     runs-on: macos-13
     steps:
@@ -131,10 +151,15 @@ jobs:
         cd kalc-plot
     - name: Build egui-full
       run: cargo build --release --no-default-features --features "egui,rayon,bincode,rug,fastnum"
+    - name: make .app
+      run: |
+        mkdir -p kalc-plot.app/Contents/MacOS
+        cp target/release/kalc-plot kalc-plot.app/Contents/MacOS/
+        cp .github/workflows/Info.plist kalc-plot.app/Contents/
     - uses: actions/upload-artifact@v4
       with:
         name: kalc-plot-macos-egui-x86_64
-        path: target/release/kalc-plot
+        path: kalc-plot.app
   build-skia-macos_x86_64:
     runs-on: macos-13
     steps:
@@ -147,16 +172,26 @@ jobs:
         cd kalc-plot
     - name: Build skia-vulkan
       run: cargo build --release --no-default-features --features "skia,skia-vulkan,rug,fastnum"
+    - name: make .app
+      run: |
+        mkdir -p kalc-plot.app/Contents/MacOS
+        cp target/release/kalc-plot kalc-plot.app/Contents/MacOS/
+        cp .github/workflows/Info.plist kalc-plot.app/Contents/
     - uses: actions/upload-artifact@v4
       with:
         name: kalc-plot-macos-skia-vulkan-x86_64
-        path: target/release/kalc-plot
+        path: kalc-plot.app
     - name: Build skia
       run: cargo build --release --no-default-features --features "skia,arboard,rayon,bincode,rug,fastnum,softbuffer"
+    - name: make .app
+      run: |
+        mkdir -p kalc-plot.app/Contents/MacOS
+        cp target/release/kalc-plot kalc-plot.app/Contents/MacOS/
+        cp .github/workflows/Info.plist kalc-plot.app/Contents/
     - uses: actions/upload-artifact@v4
       with:
         name: kalc-plot-macos-skia-x86_64
-        path: target/release/kalc-plot
+        path: kalc-plot.app
   build-tiny-skia-macos_x86_64:
     runs-on: macos-13
     steps:
@@ -169,10 +204,15 @@ jobs:
         cd kalc-plot
     - name: Build tiny-full
       run: cargo build --release --no-default-features --features "tiny-skia,arboard,rayon,bincode,softbuffer,rug,fastnum"
+    - name: make .app
+      run: |
+        mkdir -p kalc-plot.app/Contents/MacOS
+        cp target/release/kalc-plot kalc-plot.app/Contents/MacOS/
+        cp .github/workflows/Info.plist kalc-plot.app/Contents/
     - uses: actions/upload-artifact@v4
       with:
         name: kalc-plot-macos-tiny-skia-x86_64
-        path: target/release/kalc-plot
+        path: kalc-plot.app
   build-egui-windows:
     runs-on: windows-latest
     steps:
