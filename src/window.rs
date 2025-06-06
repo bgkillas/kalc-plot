@@ -44,17 +44,15 @@ impl winit::application::ApplicationHandler for App {
     fn window_event(
         &mut self,
         event_loop: &winit::event_loop::ActiveEventLoop,
-        window: winit::window::WindowId,
+        _: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
         match event {
             winit::event::WindowEvent::Resized(_d) => {
                 let Some(state) = self.surface_state() else {
-                    return;
+                    unreachable!();
                 };
-                if state.window().id() != window {
-                    return;
-                }
+
                 state.window().request_redraw();
                 #[cfg(not(feature = "skia-vulkan"))]
                 state
@@ -68,11 +66,8 @@ impl winit::application::ApplicationHandler for App {
             }
             winit::event::WindowEvent::RedrawRequested => {
                 let Some(state) = self.surface_state() else {
-                    return;
+                    unreachable!();
                 };
-                if state.window().id() != window {
-                    return;
-                }
                 let (width, height) = {
                     let size = state.window().inner_size();
                     (size.width, size.height)
@@ -119,7 +114,7 @@ impl winit::application::ApplicationHandler for App {
                 self.main(width, height);
                 if self.plot.request_redraw {
                     let Some(state) = self.surface_state() else {
-                        return;
+                        unreachable!();
                     };
                     state.window().request_redraw();
                 }
@@ -134,11 +129,8 @@ impl winit::application::ApplicationHandler for App {
             winit::event::WindowEvent::KeyboardInput { event, .. } => {
                 if event.state.is_pressed() {
                     let Some(state) = self.surface_state() else {
-                        return;
+                        unreachable!();
                     };
-                    if state.window().id() != window {
-                        return;
-                    }
                     state.window().request_redraw();
                     self.input_state.keys_pressed.push(event.logical_key.into());
                 }
@@ -146,21 +138,15 @@ impl winit::application::ApplicationHandler for App {
             winit::event::WindowEvent::MouseInput { state, button, .. } => match button {
                 winit::event::MouseButton::Left => {
                     let Some(s) = self.surface_state() else {
-                        return;
+                        unreachable!();
                     };
-                    if s.window().id() != window {
-                        return;
-                    }
                     s.window().request_redraw();
                     self.input_state.pointer = state.is_pressed().then_some(true);
                 }
                 winit::event::MouseButton::Right => {
                     let Some(s) = self.surface_state() else {
-                        return;
+                        unreachable!();
                     };
-                    if s.window().id() != window {
-                        return;
-                    }
                     s.window().request_redraw();
                     self.input_state.pointer_right = state.is_pressed().then_some(true);
                 }
@@ -178,11 +164,8 @@ impl winit::application::ApplicationHandler for App {
                     || (!self.plot.is_3d
                         && (!self.plot.disable_coord || self.plot.ruler_pos.is_some()));
                 let Some(s) = self.surface_state() else {
-                    return;
+                    unreachable!();
                 };
-                if s.window().id() != window {
-                    return;
-                }
                 if bool {
                     s.window().request_redraw();
                 }
@@ -190,11 +173,8 @@ impl winit::application::ApplicationHandler for App {
             }
             winit::event::WindowEvent::MouseWheel { delta, .. } => {
                 let Some(s) = self.surface_state() else {
-                    return;
+                    unreachable!();
                 };
-                if s.window().id() != window {
-                    return;
-                }
                 s.window().request_redraw();
                 self.input_state.raw_scroll_delta = match delta {
                     winit::event::MouseScrollDelta::LineDelta(x, y) => {
@@ -208,11 +188,8 @@ impl winit::application::ApplicationHandler for App {
             winit::event::WindowEvent::ModifiersChanged(modifiers) => {
                 let empty = self.input_state.keys_pressed.is_empty();
                 let Some(s) = self.surface_state() else {
-                    return;
+                    unreachable!();
                 };
-                if s.window().id() != window {
-                    return;
-                }
                 if !empty {
                     s.window().request_redraw();
                 }
@@ -223,11 +200,8 @@ impl winit::application::ApplicationHandler for App {
             }
             winit::event::WindowEvent::PanGesture { delta, .. } => {
                 let Some(s) = self.surface_state() else {
-                    return;
+                    unreachable!();
                 };
-                if s.window().id() != window {
-                    return;
-                }
                 s.window().request_redraw();
                 let translation_delta = rupl::types::Vec2::new(delta.x as f64, delta.y as f64);
                 if let Some(multi) = &mut self.input_state.multi {
@@ -243,11 +217,8 @@ impl winit::application::ApplicationHandler for App {
                 delta: zoom_delta, ..
             } => {
                 let Some(s) = self.surface_state() else {
-                    return;
+                    unreachable!();
                 };
-                if s.window().id() != window {
-                    return;
-                }
                 s.window().request_redraw();
                 if let Some(multi) = &mut self.input_state.multi {
                     multi.zoom_delta = zoom_delta
@@ -265,11 +236,8 @@ impl winit::application::ApplicationHandler for App {
                 ..
             }) => {
                 let Some(s) = self.surface_state() else {
-                    return;
+                    unreachable!();
                 };
-                if s.window().id() != window {
-                    return;
-                }
                 s.window().request_redraw();
                 match phase {
                     winit::event::TouchPhase::Ended | winit::event::TouchPhase::Cancelled => {
