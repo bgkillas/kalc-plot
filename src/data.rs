@@ -182,7 +182,7 @@ impl Data {
                             let ly = (p * self.options.samples_3d.1 as f64) as usize;
                             self.generate_3d(sx, sy, ex, ey, lx, ly, n)
                         }
-                        Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x, y, n),
+                        Prec::Dimension(x, y) => self.generate_3d(sx, sy, ex, ey, x - 1, y - 1, n),
                         Prec::Slice(p) => {
                             let l = (p * self.options.samples_2d as f64) as usize;
                             self.generate_2d_slice(sx, sy, ex, ey, l, l, plot.slice, plot.view_x, n)

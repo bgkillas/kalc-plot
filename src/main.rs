@@ -1,3 +1,4 @@
+//TODO use CC=clang and include gmp-mpfr in aur build
 #![windows_subsystem = "windows"]
 mod app;
 mod data;
