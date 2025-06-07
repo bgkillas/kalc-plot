@@ -96,17 +96,6 @@ jobs:
         git clone https://github.com/bgkillas/rupl
         git clone https://github.com/bgkillas/kalc-lib
         cd kalc-plot
-    - name: Build skia-vulkan
-      run: cargo build --release --no-default-features --features "skia,skia-vulkan,rug,fastnum"
-    - name: make .app
-      run: |
-        mkdir -p app/kalc-plot.app/Contents/MacOS
-        cp target/release/kalc-plot app/kalc-plot.app/Contents/MacOS/
-        cp .github/workflows/Info.plist app/kalc-plot.app/Contents/
-    - uses: actions/upload-artifact@v4
-      with:
-        name: kalc-plot-macos-skia-vulkan
-        path: app
     - name: Build skia
       run: cargo build --release --no-default-features --features "skia,arboard,rayon,bincode,rug,fastnum,softbuffer"
     - name: make .app
@@ -170,17 +159,6 @@ jobs:
         git clone https://github.com/bgkillas/rupl
         git clone https://github.com/bgkillas/kalc-lib
         cd kalc-plot
-    - name: Build skia-vulkan
-      run: cargo build --release --no-default-features --features "skia,skia-vulkan,rug,fastnum"
-    - name: make .app
-      run: |
-        mkdir -p app/kalc-plot.app/Contents/MacOS
-        cp target/release/kalc-plot app/kalc-plot.app/Contents/MacOS/
-        cp .github/workflows/Info.plist app/kalc-plot.app/Contents/
-    - uses: actions/upload-artifact@v4
-      with:
-        name: kalc-plot-macos-skia-vulkan-x86_64
-        path: app
     - name: Build skia
       run: cargo build --release --no-default-features --features "skia,arboard,rayon,bincode,rug,fastnum,softbuffer"
     - name: make .app
