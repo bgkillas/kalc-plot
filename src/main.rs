@@ -1,18 +1,21 @@
-//TODO use CC=clang and include gmp-mpfr in aur build
 #![windows_subsystem = "windows"]
 mod app;
 mod data;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 mod window;
 use crate::data::Data;
+#[cfg(feature = "kalc-lib")]
 use kalc_lib::load_vars::get_vars;
+#[cfg(feature = "kalc-lib")]
 use kalc_lib::units::Options;
 use rupl::types::{Complex, Graph, GraphType, Name, Show};
 #[cfg(feature = "bincode")]
 use serde::{Deserialize, Serialize};
 use std::env::args;
+#[cfg(feature = "kalc-lib")]
 #[cfg(feature = "bincode")]
 use std::io::Read;
+#[cfg(feature = "kalc-lib")]
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 use std::io::Write;
 fn main() {
@@ -20,6 +23,7 @@ fn main() {
     args.remove(0);
     let s = String::new();
     let function = args.last().unwrap_or(&s);
+    #[cfg(feature = "kalc-lib")]
     let data = if args.len() > 1 && args[0] == "-d" && cfg!(feature = "bincode") {
         #[cfg(feature = "bincode")]
         {
@@ -82,9 +86,20 @@ fn main() {
     }
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     {
+        #[cfg(feature = "kalc-lib")]
         let f = data.colors.graphtofile.clone();
+        #[cfg(feature = "kalc-lib")]
         let (width, height) = data.options.window_size;
+        #[cfg(feature = "kalc-lib")]
         let mut app = App::new(function.to_string(), data);
+        #[cfg(not(feature = "kalc-lib"))]
+        let mut app = App::new(function.to_string());
+        #[cfg(not(feature = "kalc-lib"))]
+        {
+            let event_loop = winit::event_loop::EventLoop::new().unwrap();
+            event_loop.run_app(&mut app).unwrap()
+        }
+        #[cfg(feature = "kalc-lib")]
         if f.is_empty() {
             let event_loop = winit::event_loop::EventLoop::new().unwrap();
             event_loop.run_app(&mut app).unwrap()
@@ -227,8 +242,10 @@ pub(crate) fn get_names(graph: &[GraphType], names: &[(Vec<String>, String)]) ->
 #[cfg(not(feature = "rayon"))]
 use crate::data::Plot;
 #[cfg(not(feature = "rayon"))]
+#[cfg(feature = "kalc-lib")]
 use kalc_lib::complex::NumStr;
 #[cfg(not(feature = "rayon"))]
+#[cfg(feature = "kalc-lib")]
 use kalc_lib::units::HowGraphing;
 #[cfg(not(feature = "rayon"))]
 pub trait IntoIter<T: ?Sized> {
@@ -259,6 +276,7 @@ impl<'a> IntoIter<std::vec::IntoIter<&'a str>> for Vec<&'a str> {
     }
 }
 #[cfg(not(feature = "rayon"))]
+#[cfg(feature = "kalc-lib")]
 impl
     IntoIter<
         std::vec::IntoIter<(

@@ -29,8 +29,8 @@ egui=["dep:egui","dep:eframe","rupl/egui"]
 skia=["rupl/skia" ,"rupl/winit", "dep:winit"]
 tiny-skia=["rupl/tiny-skia" ,"rupl/winit", "dep:winit", "rupl/tiny-skia-text", "rupl/tiny-skia-png"]
 softbuffer = ["dep:softbuffer"]
-rayon=["dep:rayon", "rupl/rayon", "kalc-lib/rayon"]
-bincode=["dep:bitcode", "dep:serde", "rupl/serde", "dep:dirs", "kalc-lib/serde"]
+rayon=["dep:rayon", "rupl/rayon", "kalc-lib?/rayon"]
+bincode=["dep:bitcode", "dep:serde", "rupl/serde", "dep:dirs", "kalc-lib?/serde"]
 arboard=["rupl/arboard"]
 force-cross=["kalc-lib/force-cross"]
 system-libs=["kalc-lib/system-libs"]
@@ -40,8 +40,9 @@ wayland=["winit/wayland"]
 vulkano-x11=["rupl/vulkano-x11"]
 softbuffer-x11=["softbuffer/x11"]
 softbuffer-wayland=["softbuffer/wayland"]
-rug=["kalc-lib/rug"]
-fastnum=["kalc-lib/fastnum"]
+rug=["kalc-lib/rug","kalc-lib"]
+fastnum=["kalc-lib/fastnum","kalc-lib"]
+kalc-lib=["dep:kalc-lib"]
 
 [dependencies]
 egui={version="0.31.1",default-features = false,optional=true}
@@ -53,4 +54,4 @@ dirs={version="6.0.0", optional=true}
 bitcode = {version="0.6.6",features = ["serde"],optional = true}
 serde = {version = "1.0.219", features = ["derive"], optional = true}
 rupl={version = "0.1.2",path="../rupl",default-features = false}
-kalc-lib={version="1.5.1",default-features=false,features = ["fastrand"],path="../kalc-lib"}
+kalc-lib={version="1.5.1",default-features=false,features = ["fastrand"],path="../kalc-lib",optional = true}

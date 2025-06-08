@@ -1,8 +1,10 @@
 use crate::data::Data;
+#[cfg(feature = "kalc-lib")]
 use crate::data::init;
 use crate::{App, get_names};
 use rupl::types::Graph;
 impl App {
+    #[cfg(feature = "kalc-lib")]
     pub(crate) fn new(function: String, data: kalc_lib::units::Data) -> Self {
         #[cfg(feature = "bincode")]
         let mut function = function;
@@ -112,6 +114,66 @@ impl App {
                 _ => {}
             }
         }
+        data.update(&mut plot);
+        Self {
+            plot,
+            data,
+            #[cfg(feature = "bincode")]
+            tiny,
+            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            #[cfg(not(feature = "skia-vulkan"))]
+            surface_state: None,
+            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            input_state: rupl::types::InputState::default(),
+            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            name: function,
+            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            touch_positions: Default::default(),
+            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            last_touch_positions: Default::default(),
+        }
+    }
+    #[cfg(not(feature = "kalc-lib"))]
+    pub(crate) fn new(function: String) -> Self {
+        #[cfg(feature = "bincode")]
+        let mut function = function;
+        #[cfg(feature = "bincode")]
+        let tiny = (&function).try_into().ok();
+        #[cfg(feature = "bincode")]
+        if tiny.is_some() {
+            function = String::new()
+        }
+        let options = crate::data::Options::default();
+        let mut data = Data {
+            data: vec![Some(crate::data::Plot {
+                graph_type: crate::data::Type {
+                    val: crate::data::Val::Num(None),
+                    how: crate::data::HowGraphing {
+                        graph: true,
+                        x: true,
+                        y: false,
+                        w: false,
+                    },
+                    inv: None,
+                },
+            })],
+            blacklist: Vec::new(),
+            options,
+            var: rupl::types::Vec2::new(options.xr.0, options.xr.1),
+            count_changed: false,
+        };
+        let (graph, complex) =
+            data.generate_2d(options.xr.0, options.xr.1, options.samples_2d, None);
+        let names = &[(Vec::new(), "f(x)".to_string())];
+        let names = get_names(&graph, names);
+        let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);
+        #[cfg(feature = "bincode")]
+        {
+            plot.save_file =
+                dirs::config_dir().unwrap().to_str().unwrap().to_owned() + "/kalc/plot";
+        }
+        plot.is_complex = complex;
+        plot.mult = 1.0 / 16.0;
         data.update(&mut plot);
         Self {
             plot,
