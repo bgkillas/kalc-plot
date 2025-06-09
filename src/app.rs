@@ -151,7 +151,7 @@ impl App {
                     how: crate::data::HowGraphing {
                         graph: true,
                         x: true,
-                        y: false,
+                        y: true,
                         w: false,
                     },
                     inv: None,
@@ -162,8 +162,15 @@ impl App {
             var: rupl::types::Vec2::new(options.xr.0, options.xr.1),
             count_changed: false,
         };
-        let (graph, complex) =
-            data.generate_2d(options.xr.0, options.xr.1, options.samples_2d, None);
+        let (graph, complex) = data.generate_3d(
+            options.xr.0,
+            options.yr.0,
+            options.xr.1,
+            options.yr.1,
+            options.samples_3d.0,
+            options.samples_3d.1,
+            None,
+        );
         let names = &[(Vec::new(), "f(x)".to_string())];
         let names = get_names(&graph, names);
         let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);

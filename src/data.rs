@@ -125,7 +125,7 @@ pub(crate) struct Plot {
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
 pub(crate) struct Options {
     pub xr: (f64, f64),
-    //pub yr: (f64, f64),
+    pub yr: (f64, f64),
     //pub zr: (f64, f64),
     pub samples_2d: usize,
     pub samples_3d: (usize, usize),
@@ -135,7 +135,7 @@ impl Options {
     pub(crate) fn default() -> Self {
         Self {
             xr: (-8.0, 8.0),
-            //yr: (-8.0, 8.0),
+            yr: (-8.0, 8.0),
             //zr: (-8.0, 8.0),
             samples_3d: (32, 32),
             samples_2d: 512,
@@ -1427,8 +1427,21 @@ fn is_list(func: &[NumStr], funcvar: &[(String, Vec<NumStr>)]) -> bool {
     })
 }
 #[cfg(not(feature = "kalc-lib"))]
-fn f3(x: f64, y: f64) -> Complex {
-    Complex::Real(x + y)
+pub fn f3(x: f64, y: f64) -> Complex {
+    let (x, y) = recip(x, y);
+    let (x, y) = sin(x, y);
+    Complex::Complex(x, y)
+}
+#[cfg(not(feature = "kalc-lib"))]
+pub fn recip(x: f64, y: f64) -> (f64, f64) {
+    let r = x * x + y * y;
+    (x / r, -y / r)
+}
+#[cfg(not(feature = "kalc-lib"))]
+pub fn sin(x: f64, y: f64) -> (f64, f64) {
+    let (a, b) = x.sin_cos();
+    let (c, d) = (y.sinh(), y.cosh());
+    (a * d, b * c)
 }
 #[cfg(not(feature = "kalc-lib"))]
 fn f(x: f64) -> Complex {
@@ -1436,5 +1449,5 @@ fn f(x: f64) -> Complex {
 }
 #[cfg(not(feature = "kalc-lib"))]
 fn is_complex() -> bool {
-    false
+    true
 }

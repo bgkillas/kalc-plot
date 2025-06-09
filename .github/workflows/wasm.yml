@@ -28,10 +28,14 @@ jobs:
           git clone https://github.com/bgkillas/rupl
           git clone https://github.com/bgkillas/kalc-lib
           cd kalc-plot
+      - name: fmt
+        run: cargo fmt --check
+      - name: lint-vulkan
+        run: cargo clippy --no-default-features --features "tiny-skia,wasm,rayon" -- -D clippy::all
 
       - name: Build WASM app
         run: |
-          wasm-pack build --out-dir www/pkg --target web --release --no-default-features --features "tiny-skia,wasm"
+          wasm-pack build --out-dir www/pkg --target web --release --no-default-features --features "tiny-skia,wasm,rayon"
 
       - name: Copy site files to output
         run: |
