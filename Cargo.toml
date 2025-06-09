@@ -27,7 +27,7 @@ crate-type = ["cdylib", "rlib"]
 wasm-opt = false
 
 [features]
-default=["tiny-skia","softbuffer-x11", "rug","fastnum", "vulkano-x11","x11", "wayland", "rayon", "bincode", "arboard"]
+default=["skia-vulkan", "rug","fastnum", "vulkano-x11","x11", "wayland", "rayon", "bincode", "arboard"]
 #default=["egui","rug","fastnum","rayon", "bincode", "arboard"]
 #default=["skia-vulkan","rug","fastnum","wayland", "rayon", "bincode", "arboard"]
 #default=["skia","rug","fastnum","wayland","softbuffer","softbuffer-wayland", "rayon", "bincode", "arboard"]
