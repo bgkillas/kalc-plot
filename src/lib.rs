@@ -161,15 +161,19 @@ struct App {
     tiny: Option<rupl::types::GraphTiny>,
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     #[cfg(not(feature = "skia-vulkan"))]
-    #[cfg_attr(feature = "bincode", serde(skip_serializing, skip_deserializing))]
+    #[cfg_attr(feature = "bincode", serde(skip))]
+    #[cfg(not(feature = "wasm"))]
     surface_state: Option<
         softbuffer::Surface<
             std::sync::Arc<winit::window::Window>,
             std::sync::Arc<winit::window::Window>,
         >,
     >,
+    #[cfg_attr(feature = "bincode", serde(skip))]
+    #[cfg(feature = "wasm")]
+    window: Option<winit::window::Window>,
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
-    #[cfg_attr(feature = "bincode", serde(skip_serializing, skip_deserializing))]
+    #[cfg_attr(feature = "bincode", serde(skip))]
     input_state: rupl::types::InputState,
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     name: String,

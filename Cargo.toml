@@ -27,14 +27,14 @@ crate-type = ["cdylib", "rlib"]
 wasm-opt = false
 
 [features]
-default=["skia-vulkan", "rug","fastnum", "vulkano-x11","x11", "wayland", "rayon", "bincode", "arboard"]
+default=["tiny-skia","softbuffer-x11", "rug","fastnum", "vulkano-x11","x11", "wayland", "rayon", "bincode", "arboard"]
 #default=["egui","rug","fastnum","rayon", "bincode", "arboard"]
 #default=["skia-vulkan","rug","fastnum","wayland", "rayon", "bincode", "arboard"]
 #default=["skia","rug","fastnum","wayland","softbuffer","softbuffer-wayland", "rayon", "bincode", "arboard"]
 #default=["tiny-skia","rug","fastnum", "wayland", "softbuffer", "softbuffer-wayland"]
 egui=["dep:egui","dep:eframe","rupl/egui"]
 skia=["rupl/skia" ,"rupl/winit", "dep:winit"]
-tiny-skia=["rupl/tiny-skia" ,"rupl/winit", "dep:winit", "softbuffer", "dep:tiny-skia", "rupl/tiny-skia-png", "rupl/tiny-skia-text"]
+tiny-skia=["rupl/tiny-skia" ,"rupl/winit", "dep:winit", "dep:tiny-skia", "rupl/tiny-skia-png", "rupl/tiny-skia-text"]
 softbuffer = ["dep:softbuffer"]
 rayon=["dep:rayon", "rupl/rayon", "kalc-lib?/rayon"]
 bincode=["dep:bitcode", "dep:serde", "rupl/serde", "dep:dirs", "kalc-lib?/serde"]
@@ -56,7 +56,7 @@ wasm=["dep:wasm-bindgen", "dep:console_error_panic_hook", "dep:web-sys"]
 egui={version="0.31.1",default-features = false,optional=true}
 eframe={version="0.31.1",optional=true}
 winit={version="0.30.11", default-features=false, features = ["rwh_06"],optional=true}
-softbuffer={version="0.4.6",default-features = false,features = ["kms"],optional=true}
+softbuffer={version="0.4.6",default-features = false,optional=true}
 rayon={version="1.10.0", optional=true}
 dirs={version="6.0.0", optional=true}
 bitcode = {version="0.6.6",features = ["serde"],optional = true}
@@ -65,5 +65,5 @@ rupl={version = "0.1.2",path="../rupl",default-features = false}
 kalc-lib={version="1.5.1",default-features=false,features = ["fastrand"],path="../kalc-lib",optional = true}
 wasm-bindgen = {version="0.2.100",optional = true}
 console_error_panic_hook = { version = "0.1.7", optional = true }
-web-sys = { version = "0.3.77", optional = true }
+web-sys = { version = "0.3.77", features = ["CanvasRenderingContext2d"], optional = true }
 tiny-skia = {version = "0.11.4", default-features = false, optional = true}

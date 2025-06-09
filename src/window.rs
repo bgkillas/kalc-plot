@@ -2,6 +2,7 @@
 use crate::App;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 impl App {
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn set_title(&self, window: &std::sync::Arc<winit::window::Window>) {
         if self.name.is_empty() {
             window.set_title("kalc-plot");
@@ -9,11 +10,16 @@ impl App {
             window.set_title(&self.name);
         }
     }
-    #[cfg(feature = "skia-vulkan")]
-    pub(crate) fn surface_state(&self) -> &Option<rupl::skia_vulkan::renderer::VulkanRenderer> {
-        &self.plot.renderer
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn set_title(&self, window: &winit::window::Window) {
+        if self.name.is_empty() {
+            window.set_title("kalc-plot");
+        } else {
+            window.set_title(&self.name);
+        }
     }
     #[cfg(not(feature = "skia-vulkan"))]
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn surface_state(
         &mut self,
     ) -> &mut Option<
@@ -23,6 +29,20 @@ impl App {
         >,
     > {
         &mut self.surface_state
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(feature = "skia-vulkan")]
+    pub(crate) fn window(&self) -> Option<&std::sync::Arc<winit::window::Window>> {
+        self.plot.renderer.as_ref().map(|s| &s.window)
+    }
+    #[cfg(not(feature = "skia-vulkan"))]
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn window(&mut self) -> Option<&std::sync::Arc<winit::window::Window>> {
+        self.surface_state.as_mut().map(|s| s.window())
+    }
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn window(&mut self) -> Option<&mut winit::window::Window> {
+        self.window.as_mut()
     }
 }
 #[cfg(feature = "wasm")]
@@ -49,16 +69,26 @@ impl winit::application::ApplicationHandler for App {
             #[cfg(feature = "wasm")]
             let window = window.with_canvas(Some(canvas));
             let window = event_loop.create_window(window);
-            std::sync::Arc::new(window.unwrap())
+            window.unwrap()
         };
-        self.set_title(&window);
-        #[cfg(not(feature = "skia-vulkan"))]
+        #[cfg(not(target_arch = "wasm32"))]
         {
-            let context = softbuffer::Context::new(window.clone()).unwrap();
-            self.surface_state = Some(softbuffer::Surface::new(&context, window.clone()).unwrap());
+            let window = std::sync::Arc::new(window);
+            self.set_title(&window);
+            #[cfg(not(feature = "skia-vulkan"))]
+            {
+                let context = softbuffer::Context::new(window.clone()).unwrap();
+                self.surface_state =
+                    Some(softbuffer::Surface::new(&context, window.clone()).unwrap());
+            }
+            #[cfg(feature = "skia-vulkan")]
+            self.plot.resumed(event_loop, window)
         }
-        #[cfg(feature = "skia-vulkan")]
-        self.plot.resumed(event_loop, window)
+        #[cfg(target_arch = "wasm32")]
+        {
+            self.set_title(&window);
+            self.window = Some(window)
+        }
     }
     fn window_event(
         &mut self,
@@ -68,31 +98,52 @@ impl winit::application::ApplicationHandler for App {
     ) {
         match event {
             winit::event::WindowEvent::Resized(_d) => {
-                let Some(state) = self.surface_state() else {
-                    return;
-                };
-
-                state.window().request_redraw();
-                #[cfg(not(feature = "skia-vulkan"))]
-                state
-                    .resize(
-                        std::num::NonZeroU32::new(_d.width).unwrap(),
-                        std::num::NonZeroU32::new(_d.height).unwrap(),
-                    )
-                    .unwrap();
-                #[cfg(feature = "skia-vulkan")]
-                self.plot.resize();
-                #[cfg(feature = "tiny-skia")]
+                #[cfg(any(feature = "wasm", feature = "skia-vulkan"))]
                 {
-                    self.canvas = Some(tiny_skia::Pixmap::new(_d.width, _d.height).unwrap());
+                    let Some(state) = self.window() else {
+                        return;
+                    };
+                    #[cfg(feature = "wasm")]
+                    {
+                        use winit::platform::web::WindowExtWebSys;
+                        let canvas: HtmlCanvasElement = state.canvas().unwrap();
+                        canvas.set_width(_d.width);
+                        canvas.set_height(_d.height);
+                    }
+                    state.request_redraw();
+                    #[cfg(feature = "skia-vulkan")]
+                    self.plot.resize();
+                    #[cfg(feature = "tiny-skia")]
+                    {
+                        self.canvas = Some(tiny_skia::Pixmap::new(_d.width, _d.height).unwrap());
+                    }
+                }
+                #[cfg(not(any(feature = "wasm", feature = "skia-vulkan")))]
+                {
+                    let Some(state) = self.surface_state() else {
+                        return;
+                    };
+                    state.window().request_redraw();
+                    #[cfg(not(feature = "skia-vulkan"))]
+                    #[cfg(feature = "softbuffer")]
+                    state
+                        .resize(
+                            std::num::NonZeroU32::new(_d.width).unwrap(),
+                            std::num::NonZeroU32::new(_d.height).unwrap(),
+                        )
+                        .unwrap();
+                    #[cfg(feature = "tiny-skia")]
+                    {
+                        self.canvas = Some(tiny_skia::Pixmap::new(_d.width, _d.height).unwrap());
+                    }
                 }
             }
             winit::event::WindowEvent::RedrawRequested => {
-                let Some(state) = self.surface_state() else {
+                let Some(state) = self.window() else {
                     return;
                 };
                 let (width, height) = {
-                    let size = state.window().inner_size();
+                    let size = state.inner_size();
                     (size.width, size.height)
                 };
                 #[cfg(feature = "tiny-skia")]
@@ -133,10 +184,10 @@ impl winit::application::ApplicationHandler for App {
                 }
                 self.main(width, height);
                 if self.plot.request_redraw {
-                    let Some(state) = self.surface_state() else {
+                    let Some(state) = self.window() else {
                         return;
                     };
-                    state.window().request_redraw();
+                    state.request_redraw();
                 }
                 self.input_state.reset();
                 self.last_touch_positions = self.touch_positions.clone();
@@ -148,26 +199,26 @@ impl winit::application::ApplicationHandler for App {
             }
             winit::event::WindowEvent::KeyboardInput { event, .. } => {
                 if event.state.is_pressed() {
-                    let Some(state) = self.surface_state() else {
+                    let Some(state) = self.window() else {
                         return;
                     };
-                    state.window().request_redraw();
+                    state.request_redraw();
                     self.input_state.keys_pressed.push(event.logical_key.into());
                 }
             }
             winit::event::WindowEvent::MouseInput { state, button, .. } => match button {
                 winit::event::MouseButton::Left => {
-                    let Some(s) = self.surface_state() else {
+                    let Some(s) = self.window() else {
                         return;
                     };
-                    s.window().request_redraw();
+                    s.request_redraw();
                     self.input_state.pointer = state.is_pressed().then_some(true);
                 }
                 winit::event::MouseButton::Right => {
-                    let Some(s) = self.surface_state() else {
+                    let Some(s) = self.window() else {
                         return;
                     };
-                    s.window().request_redraw();
+                    s.request_redraw();
                     self.input_state.pointer_right = state.is_pressed().then_some(true);
                 }
                 _ => {}
@@ -183,19 +234,19 @@ impl winit::application::ApplicationHandler for App {
                     || (self.input_state.pointer_right.is_some() && self.plot.is_drag())
                     || (!self.plot.is_3d
                         && (!self.plot.disable_coord || self.plot.ruler_pos.is_some()));
-                let Some(s) = self.surface_state() else {
+                let Some(s) = self.window() else {
                     return;
                 };
                 if bool {
-                    s.window().request_redraw();
+                    s.request_redraw();
                 }
                 self.input_state.pointer_pos = Some(rupl::types::Vec2::new(position.x, position.y));
             }
             winit::event::WindowEvent::MouseWheel { delta, .. } => {
-                let Some(s) = self.surface_state() else {
+                let Some(s) = self.window() else {
                     return;
                 };
-                s.window().request_redraw();
+                s.request_redraw();
                 self.input_state.raw_scroll_delta = match delta {
                     winit::event::MouseScrollDelta::LineDelta(x, y) => {
                         rupl::types::Vec2::new(x as f64 * 128.0, y as f64 * 128.0)
@@ -207,11 +258,11 @@ impl winit::application::ApplicationHandler for App {
             }
             winit::event::WindowEvent::ModifiersChanged(modifiers) => {
                 let empty = self.input_state.keys_pressed.is_empty();
-                let Some(s) = self.surface_state() else {
+                let Some(s) = self.window() else {
                     return;
                 };
                 if !empty {
-                    s.window().request_redraw();
+                    s.request_redraw();
                 }
                 self.input_state.modifiers.alt = modifiers.state().alt_key();
                 self.input_state.modifiers.ctrl = modifiers.state().control_key();
@@ -219,10 +270,10 @@ impl winit::application::ApplicationHandler for App {
                 self.input_state.modifiers.command = modifiers.state().super_key();
             }
             winit::event::WindowEvent::PanGesture { delta, .. } => {
-                let Some(s) = self.surface_state() else {
+                let Some(s) = self.window() else {
                     return;
                 };
-                s.window().request_redraw();
+                s.request_redraw();
                 let translation_delta = rupl::types::Vec2::new(delta.x as f64, delta.y as f64);
                 if let Some(multi) = &mut self.input_state.multi {
                     multi.translation_delta = translation_delta
@@ -236,10 +287,10 @@ impl winit::application::ApplicationHandler for App {
             winit::event::WindowEvent::PinchGesture {
                 delta: zoom_delta, ..
             } => {
-                let Some(s) = self.surface_state() else {
+                let Some(s) = self.window() else {
                     return;
                 };
-                s.window().request_redraw();
+                s.request_redraw();
                 if let Some(multi) = &mut self.input_state.multi {
                     multi.zoom_delta = zoom_delta
                 } else {
@@ -255,10 +306,10 @@ impl winit::application::ApplicationHandler for App {
                 id,
                 ..
             }) => {
-                let Some(s) = self.surface_state() else {
+                let Some(s) = self.window() else {
                     return;
                 };
-                s.window().request_redraw();
+                s.request_redraw();
                 match phase {
                     winit::event::TouchPhase::Ended | winit::event::TouchPhase::Cancelled => {
                         self.input_state.pointer = None;
@@ -281,12 +332,17 @@ impl winit::application::ApplicationHandler for App {
     }
     fn suspended(&mut self, _: &winit::event_loop::ActiveEventLoop) {
         #[cfg(not(feature = "skia-vulkan"))]
+        #[cfg(not(target_arch = "wasm32"))]
         {
             self.surface_state = None
         }
         #[cfg(feature = "skia-vulkan")]
         {
             self.plot.renderer = None
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            self.window = None;
         }
     }
 }

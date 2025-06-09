@@ -191,8 +191,9 @@ impl App {
             data,
             #[cfg(feature = "bincode")]
             tiny,
-            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
-            #[cfg(not(feature = "skia-vulkan"))]
+            #[cfg(feature = "wasm")]
+            window: None,
+            #[cfg(not(feature = "wasm"))]
             surface_state: None,
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             input_state: rupl::types::InputState::default(),
@@ -247,6 +248,7 @@ impl App {
     }
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
     #[cfg(not(feature = "skia-vulkan"))]
+    #[cfg(not(feature = "wasm"))]
     pub(crate) fn main(&mut self, width: u32, height: u32) {
         let mut b = false;
         if let Some(buffer) = &mut self.surface_state {
@@ -280,5 +282,67 @@ impl App {
                 self.set_title(w.window());
             }
         }
+    }
+    #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+    #[cfg(not(feature = "skia-vulkan"))]
+    #[cfg(feature = "wasm")]
+    pub(crate) fn main(&mut self, width: u32, height: u32) {
+        let mut b = false;
+        self.plot.keybinds(&self.input_state);
+        self.plot
+            .set_screen(width as f64, height as f64, true, true);
+        #[cfg(feature = "bincode")]
+        if let Some(tiny) = std::mem::take(&mut self.tiny) {
+            self.plot.apply_tiny(tiny);
+        }
+        if let Some(n) = self.data.update(&mut self.plot) {
+            b = true;
+            self.name = n;
+        };
+        let mut v = Vec::new();
+        #[cfg(not(feature = "tiny-skia"))]
+        self.plot.update(width, height, &mut v);
+        #[cfg(feature = "tiny-skia")]
+        {
+            self.canvas = Some(self.plot.update(
+                width,
+                height,
+                &mut v,
+                std::mem::take(&mut self.canvas).unwrap(),
+            ));
+        }
+        draw_buffer_web(self.window.as_ref().unwrap(), self.canvas.as_ref().unwrap());
+        if b {
+            let name = self.name.clone();
+            if let Some(w) = self.window() {
+                if name.is_empty() {
+                    w.set_title("kalc-plot");
+                } else {
+                    w.set_title(&name);
+                }
+            }
+        }
+    }
+}
+#[cfg(feature = "wasm")]
+fn draw_buffer_web(win: &winit::window::Window, pixmap: &tiny_skia::Pixmap) {
+    use wasm_bindgen::prelude::*;
+    let canvas = get_a_canvas(win);
+    let ctx: web_sys::CanvasRenderingContext2d = canvas
+        .get_context("2d")
+        .expect("Failed to get 2d context")
+        .expect("Failed to get 2d context")
+        .dyn_into()
+        .expect("Failed to convert to CanvasRenderingContext2d");
+    let width = pixmap.width();
+    let clamped = wasm_bindgen::Clamped(pixmap.data());
+    let image = web_sys::ImageData::new_with_u8_clamped_array(clamped, width)
+        .expect("Failed to create image data");
+    ctx.put_image_data(&image, 0.0, 0.0)
+        .expect("Failed to put image data");
+
+    fn get_a_canvas(win: &winit::window::Window) -> web_sys::HtmlCanvasElement {
+        use winit::platform::web::WindowExtWebSys;
+        win.canvas().expect("Failed to get canvas")
     }
 }
