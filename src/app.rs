@@ -134,15 +134,7 @@ impl App {
         }
     }
     #[cfg(not(feature = "kalc-lib"))]
-    pub(crate) fn new(function: String) -> Self {
-        #[cfg(feature = "bincode")]
-        let mut function = function;
-        #[cfg(feature = "bincode")]
-        let tiny = (&function).try_into().ok();
-        #[cfg(feature = "bincode")]
-        if tiny.is_some() {
-            function = String::new()
-        }
+    pub(crate) fn new(_function: String) -> Self {
         let options = crate::data::Options::default();
         let mut data = Data {
             data: vec![Some(crate::data::Plot {
@@ -189,12 +181,13 @@ impl App {
             tiny,
             #[cfg(feature = "wasm")]
             window: None,
+            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             #[cfg(not(feature = "wasm"))]
             surface_state: None,
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             input_state: rupl::types::InputState::default(),
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
-            name: function,
+            name: _function,
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             touch_positions: Default::default(),
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
