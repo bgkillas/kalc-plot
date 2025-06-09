@@ -30,8 +30,8 @@ jobs:
           cd kalc-plot
       - name: fmt
         run: cargo fmt --check
-      - name: lint-vulkan
-        run: cargo clippy --no-default-features --features "tiny-skia,wasm,rayon" -- -D clippy::all
+      - name: lint
+        run: cargo clippy --no-default-features --features "tiny-skia,wasm,rayon" --target wasm32-unknown-unknown -- -D clippy::all
 
       - name: Build WASM app
         run: |
