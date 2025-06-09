@@ -2,8 +2,7 @@ name: Build and Deploy WASM app
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "master" ]
 
 jobs:
   build:
