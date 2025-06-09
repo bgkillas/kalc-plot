@@ -154,6 +154,9 @@ pub fn main() {
 struct App {
     plot: Graph,
     data: Data,
+    #[cfg(feature = "tiny-skia")]
+    #[cfg_attr(feature = "bincode", serde(skip))]
+    canvas: Option<tiny_skia::Pixmap>,
     #[cfg(feature = "bincode")]
     tiny: Option<rupl::types::GraphTiny>,
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]

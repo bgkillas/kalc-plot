@@ -116,6 +116,8 @@ impl App {
         }
         data.update(&mut plot);
         Self {
+            #[cfg(feature = "tiny-skia")]
+            canvas: None,
             plot,
             data,
             #[cfg(feature = "bincode")]
@@ -171,7 +173,7 @@ impl App {
             options.samples_3d.1,
             None,
         );
-        let names = &[(Vec::new(), "f(x)".to_string())];
+        let names = &[];
         let names = get_names(&graph, names);
         let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);
         #[cfg(feature = "bincode")]
@@ -183,6 +185,8 @@ impl App {
         plot.mult = 1.0 / 16.0;
         data.update(&mut plot);
         Self {
+            #[cfg(feature = "tiny-skia")]
+            canvas: None,
             plot,
             data,
             #[cfg(feature = "bincode")]
@@ -258,7 +262,17 @@ impl App {
                 self.name = n;
             };
             let mut buffer = buffer.buffer_mut().unwrap();
+            #[cfg(not(feature = "tiny-skia"))]
             self.plot.update(width, height, &mut buffer);
+            #[cfg(feature = "tiny-skia")]
+            {
+                self.canvas = Some(self.plot.update(
+                    width,
+                    height,
+                    &mut buffer,
+                    std::mem::take(&mut self.canvas).unwrap(),
+                ));
+            }
             buffer.present().unwrap();
         }
         if b {
