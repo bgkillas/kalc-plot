@@ -22,10 +22,10 @@ use std::io::Write;
 use wasm_bindgen::prelude::wasm_bindgen;
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
 pub fn main() {
-    #[cfg(feature = "wasm")]
-    console_error_panic_hook::set_once();
-    #[cfg(feature = "wasm")]
-    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    //#[cfg(feature = "wasm")]
+    //console_error_panic_hook::set_once();
+    //#[cfg(feature = "wasm")]
+    //std::panic::set_hook(Box::new(console_error_panic_hook::hook));
     let mut args = args().collect::<Vec<String>>();
     if !args.is_empty() {
         args.remove(0);

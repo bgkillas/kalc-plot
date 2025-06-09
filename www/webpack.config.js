@@ -2,8 +2,8 @@ const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-  mode: "development",
-  entry: "./index.js", // or wherever your entry point is
+  mode: "production",
+  entry: "./bootstrap.js",
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "bundle.js",

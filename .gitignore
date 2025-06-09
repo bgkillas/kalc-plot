@@ -1,3 +1,5 @@
 /target
 /www/pkg/
 /bin
+/www/node_modules
+/www/dist
