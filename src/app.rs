@@ -297,9 +297,11 @@ impl App {
         {
             self.plot.update(width, height, &mut v);
         }
+        let canvas = self.plot.canvas.as_ref().unwrap();
         draw_buffer_web(
             self.window.as_ref().unwrap(),
-            self.plot.canvas.as_ref().unwrap(),
+            canvas.width(),
+            wasm_bindgen::Clamped(canvas.data()),
         );
         if b {
             let name = self.name.clone();
@@ -314,7 +316,7 @@ impl App {
     }
 }
 #[cfg(feature = "wasm")]
-fn draw_buffer_web(win: &winit::window::Window, pixmap: &tiny_skia::Pixmap) {
+fn draw_buffer_web(win: &winit::window::Window, width: u32, clamped: wasm_bindgen::Clamped<&[u8]>) {
     use wasm_bindgen::prelude::*;
     let canvas = get_a_canvas(win);
     let ctx: web_sys::CanvasRenderingContext2d = canvas
@@ -323,8 +325,6 @@ fn draw_buffer_web(win: &winit::window::Window, pixmap: &tiny_skia::Pixmap) {
         .expect("Failed to get 2d context")
         .dyn_into()
         .expect("Failed to convert to CanvasRenderingContext2d");
-    let width = pixmap.width();
-    let clamped = wasm_bindgen::Clamped(pixmap.data());
     let image = web_sys::ImageData::new_with_u8_clamped_array(clamped, width)
         .expect("Failed to create image data");
     ctx.put_image_data(&image, 0.0, 0.0)
