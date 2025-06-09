@@ -1849,7 +1849,6 @@ dependencies = [
  "rupl",
  "serde",
  "softbuffer",
- "tiny-skia",
  "wasm-bindgen",
  "web-sys",
  "winit",

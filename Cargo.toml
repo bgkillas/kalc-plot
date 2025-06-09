@@ -34,7 +34,7 @@ default=["skia-vulkan", "rug","fastnum", "vulkano-x11","x11", "wayland", "rayon"
 #default=["tiny-skia","rug","fastnum", "wayland", "softbuffer", "softbuffer-wayland"]
 egui=["dep:egui","dep:eframe","rupl/egui"]
 skia=["rupl/skia" ,"rupl/winit", "dep:winit"]
-tiny-skia=["rupl/tiny-skia" ,"rupl/winit", "dep:winit", "dep:tiny-skia", "rupl/tiny-skia-png", "rupl/tiny-skia-text"]
+tiny-skia=["rupl/tiny-skia" ,"rupl/winit", "dep:winit", "rupl/tiny-skia-png", "rupl/tiny-skia-text"]
 softbuffer = ["dep:softbuffer"]
 rayon=["dep:rayon", "rupl/rayon", "kalc-lib?/rayon"]
 bincode=["dep:bitcode", "dep:serde", "rupl/serde", "dep:dirs", "kalc-lib?/serde"]
@@ -66,4 +66,3 @@ kalc-lib={version="1.5.1",default-features=false,features = ["fastrand"],path=".
 wasm-bindgen = {version="0.2.100",optional = true}
 #console_error_panic_hook = { version = "0.1.7", optional = true }
 web-sys = { version = "0.3.77", features = ["CanvasRenderingContext2d"], optional = true }
-tiny-skia = {version = "0.11.4", default-features = false, optional = true}

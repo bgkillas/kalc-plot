@@ -116,8 +116,6 @@ impl App {
         }
         data.update(&mut plot);
         Self {
-            #[cfg(feature = "tiny-skia")]
-            canvas: None,
             plot,
             data,
             #[cfg(feature = "bincode")]
@@ -185,8 +183,6 @@ impl App {
         plot.mult = 1.0 / 16.0;
         data.update(&mut plot);
         Self {
-            #[cfg(feature = "tiny-skia")]
-            canvas: None,
             plot,
             data,
             #[cfg(feature = "bincode")]
@@ -268,12 +264,7 @@ impl App {
             self.plot.update(width, height, &mut buffer);
             #[cfg(feature = "tiny-skia")]
             {
-                self.canvas = Some(self.plot.update(
-                    width,
-                    height,
-                    &mut buffer,
-                    std::mem::take(&mut self.canvas).unwrap(),
-                ));
+                self.plot.update(width, height, &mut buffer);
             }
             buffer.present().unwrap();
         }
@@ -304,14 +295,12 @@ impl App {
         self.plot.update(width, height, &mut v);
         #[cfg(feature = "tiny-skia")]
         {
-            self.canvas = Some(self.plot.update(
-                width,
-                height,
-                &mut v,
-                std::mem::take(&mut self.canvas).unwrap(),
-            ));
+            self.plot.update(width, height, &mut v);
         }
-        draw_buffer_web(self.window.as_ref().unwrap(), self.canvas.as_ref().unwrap());
+        draw_buffer_web(
+            self.window.as_ref().unwrap(),
+            self.plot.canvas.as_ref().unwrap(),
+        );
         if b {
             let name = self.name.clone();
             if let Some(w) = self.window() {

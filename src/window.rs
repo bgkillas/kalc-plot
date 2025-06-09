@@ -113,10 +113,6 @@ impl winit::application::ApplicationHandler for App {
                     state.request_redraw();
                     #[cfg(feature = "skia-vulkan")]
                     self.plot.resize();
-                    #[cfg(feature = "tiny-skia")]
-                    {
-                        self.canvas = Some(tiny_skia::Pixmap::new(_d.width, _d.height).unwrap());
-                    }
                 }
                 #[cfg(not(any(feature = "wasm", feature = "skia-vulkan")))]
                 {
@@ -132,10 +128,6 @@ impl winit::application::ApplicationHandler for App {
                             std::num::NonZeroU32::new(_d.height).unwrap(),
                         )
                         .unwrap();
-                    #[cfg(feature = "tiny-skia")]
-                    {
-                        self.canvas = Some(tiny_skia::Pixmap::new(_d.width, _d.height).unwrap());
-                    }
                 }
             }
             winit::event::WindowEvent::RedrawRequested => {
@@ -146,10 +138,6 @@ impl winit::application::ApplicationHandler for App {
                     let size = state.inner_size();
                     (size.width, size.height)
                 };
-                #[cfg(feature = "tiny-skia")]
-                if self.canvas.is_none() {
-                    self.canvas = Some(tiny_skia::Pixmap::new(width, height).unwrap());
-                }
                 if self.touch_positions.len() > 1
                     && self.touch_positions.len() == self.last_touch_positions.len()
                 {
