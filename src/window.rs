@@ -25,11 +25,30 @@ impl App {
         &mut self.surface_state
     }
 }
+#[cfg(feature = "wasm")]
+use wasm_bindgen::JsCast;
+#[cfg(feature = "wasm")]
+use web_sys::HtmlCanvasElement;
+#[cfg(feature = "wasm")]
+use winit::platform::web::WindowAttributesExtWebSys;
 #[cfg(any(feature = "skia", feature = "tiny-skia"))]
 impl winit::application::ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let window = {
-            let window = event_loop.create_window(winit::window::Window::default_attributes());
+            #[cfg(feature = "wasm")]
+            let window = web_sys::window().expect("no global `window` exists");
+            #[cfg(feature = "wasm")]
+            let document = window.document().expect("should have a document");
+            #[cfg(feature = "wasm")]
+            let canvas = document
+                .get_element_by_id("canvas")
+                .expect("document should have canvas")
+                .dyn_into::<HtmlCanvasElement>()
+                .expect("element should be a canvas");
+            let window = winit::window::Window::default_attributes();
+            #[cfg(feature = "wasm")]
+            let window = window.with_canvas(Some(canvas));
+            let window = event_loop.create_window(window);
             std::sync::Arc::new(window.unwrap())
         };
         self.set_title(&window);

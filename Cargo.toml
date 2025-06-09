@@ -19,6 +19,12 @@ codegen-units=1
 [profile.dev]
 opt-level = 1
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
 [features]
 default=["skia-vulkan", "rug","fastnum", "vulkano-x11","x11", "wayland", "rayon", "bincode", "arboard"]
 #default=["egui","rug","fastnum","rayon", "bincode", "arboard"]
@@ -27,7 +33,7 @@ default=["skia-vulkan", "rug","fastnum", "vulkano-x11","x11", "wayland", "rayon"
 #default=["tiny-skia","rug","fastnum", "wayland", "softbuffer", "softbuffer-wayland"]
 egui=["dep:egui","dep:eframe","rupl/egui"]
 skia=["rupl/skia" ,"rupl/winit", "dep:winit"]
-tiny-skia=["rupl/tiny-skia" ,"rupl/winit", "dep:winit", "rupl/tiny-skia-text", "rupl/tiny-skia-png"]
+tiny-skia=["rupl/tiny-skia" ,"rupl/winit", "dep:winit", "rupl/tiny-skia-text", "rupl/tiny-skia-png", "softbuffer"]
 softbuffer = ["dep:softbuffer"]
 rayon=["dep:rayon", "rupl/rayon", "kalc-lib?/rayon"]
 bincode=["dep:bitcode", "dep:serde", "rupl/serde", "dep:dirs", "kalc-lib?/serde"]
@@ -43,6 +49,7 @@ softbuffer-wayland=["softbuffer/wayland"]
 rug=["kalc-lib/rug","kalc-lib"]
 fastnum=["kalc-lib/fastnum","kalc-lib"]
 kalc-lib=["dep:kalc-lib"]
+wasm=["dep:wasm-bindgen", "dep:console_error_panic_hook", "dep:web-sys"]
 
 [dependencies]
 egui={version="0.31.1",default-features = false,optional=true}
@@ -55,3 +62,6 @@ bitcode = {version="0.6.6",features = ["serde"],optional = true}
 serde = {version = "1.0.219", features = ["derive"], optional = true}
 rupl={version = "0.1.2",path="../rupl",default-features = false}
 kalc-lib={version="1.5.1",default-features=false,features = ["fastrand"],path="../kalc-lib",optional = true}
+wasm-bindgen = {version="0.2.100",optional = true}
+console_error_panic_hook = { version = "0.1.7", optional = true }
+web-sys = { version = "0.3.77", optional = true }
