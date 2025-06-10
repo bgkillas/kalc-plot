@@ -123,13 +123,13 @@ impl App {
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             #[cfg(not(feature = "skia-vulkan"))]
             surface_state: None,
-            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
             input_state: rupl::types::InputState::default(),
-            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
             name: function,
-            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
             touch_positions: Default::default(),
-            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
             last_touch_positions: Default::default(),
         }
     }
@@ -184,13 +184,13 @@ impl App {
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             #[cfg(not(feature = "wasm"))]
             surface_state: None,
-            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
             input_state: rupl::types::InputState::default(),
-            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
             name: _function,
-            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
             touch_positions: Default::default(),
-            #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
             last_touch_positions: Default::default(),
         }
     }
@@ -307,8 +307,49 @@ impl App {
             }
         }
     }
+    #[cfg(feature = "wasm")]
+    #[cfg(feature = "wasm-draw")]
+    pub(crate) fn main(&mut self, width: u32, height: u32) {
+        let mut b = false;
+        self.plot.keybinds(&self.input_state);
+        self.plot
+            .set_screen(width as f64, height as f64, true, true);
+        #[cfg(feature = "bincode")]
+        if let Some(tiny) = std::mem::take(&mut self.tiny) {
+            self.plot.apply_tiny(tiny);
+        }
+        if let Some(n) = self.data.update(&mut self.plot) {
+            b = true;
+            self.name = n;
+        };
+        use wasm_bindgen::prelude::*;
+        use winit::platform::web::WindowExtWebSys;
+        let canvas: web_sys::HtmlCanvasElement = self
+            .window
+            .as_ref()
+            .unwrap()
+            .canvas()
+            .expect("Failed to get canvas");
+        let ctx: web_sys::CanvasRenderingContext2d = canvas
+            .get_context("2d")
+            .expect("Failed to get 2d context")
+            .expect("Failed to get 2d context")
+            .dyn_into()
+            .expect("Failed to convert to CanvasRenderingContext2d");
+        self.plot.update(width, height, ctx);
+        if b {
+            let name = self.name.clone();
+            if let Some(w) = self.window() {
+                if name.is_empty() {
+                    w.set_title("kalc-plot");
+                } else {
+                    w.set_title(&name);
+                }
+            }
+        }
+    }
 }
-#[cfg(feature = "wasm")]
+#[cfg(all(feature = "wasm", feature = "tiny-skia"))]
 fn draw_buffer_web(win: &winit::window::Window, width: u32, clamped: wasm_bindgen::Clamped<&[u8]>) {
     use wasm_bindgen::prelude::*;
     let canvas = get_a_canvas(win);

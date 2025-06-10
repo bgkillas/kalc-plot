@@ -1,6 +1,6 @@
-#[cfg(any(feature = "skia", feature = "tiny-skia"))]
+#[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
 use crate::App;
-#[cfg(any(feature = "skia", feature = "tiny-skia"))]
+#[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
 impl App {
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn set_title(&self, window: &std::sync::Arc<winit::window::Window>) {
@@ -19,6 +19,7 @@ impl App {
         }
     }
     #[cfg(not(feature = "skia-vulkan"))]
+    #[cfg(not(feature = "wasm-draw"))]
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn surface_state(
         &mut self,
@@ -51,7 +52,7 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 #[cfg(feature = "wasm")]
 use winit::platform::web::WindowAttributesExtWebSys;
-#[cfg(any(feature = "skia", feature = "tiny-skia"))]
+#[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
 impl winit::application::ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let window = {
@@ -76,6 +77,7 @@ impl winit::application::ApplicationHandler for App {
             let window = std::sync::Arc::new(window);
             self.set_title(&window);
             #[cfg(not(feature = "skia-vulkan"))]
+            #[cfg(not(feature = "wasm-draw"))]
             {
                 let context = softbuffer::Context::new(window.clone()).unwrap();
                 self.surface_state =
@@ -320,6 +322,7 @@ impl winit::application::ApplicationHandler for App {
     }
     fn suspended(&mut self, _: &winit::event_loop::ActiveEventLoop) {
         #[cfg(not(feature = "skia-vulkan"))]
+        #[cfg(not(feature = "wasm-draw"))]
         #[cfg(not(target_arch = "wasm32"))]
         {
             self.surface_state = None

@@ -2872,6 +2872,7 @@ dependencies = [
  "skia-safe",
  "tiny-skia",
  "vulkano",
+ "web-sys",
  "winit",
  "zstd",
 ]
