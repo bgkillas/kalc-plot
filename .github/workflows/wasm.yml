@@ -40,7 +40,7 @@ jobs:
 
       - name: Build WASM app
         run: |
-          wasm-pack build --out-dir www/pkg --target web --release --no-default-features --features "tiny-skia,wasm,rayon"
+          wasm-pack build --out-dir www/pkg --target web --release --no-default-features --features "wasm-draw"
           cd www
           wasm-opt -O3   --enable-bulk-memory   --enable-nontrapping-float-to-int   -o pkg/kalc_plot_bg.wasm   pkg/kalc_plot_bg.wasm
           cd ..
