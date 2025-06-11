@@ -45,6 +45,17 @@ impl App {
     pub(crate) fn window(&mut self) -> Option<&mut winit::window::Window> {
         self.window.as_mut()
     }
+    #[cfg(feature = "wasm")]
+    fn get_pos(
+        &self,
+        mut pos: winit::dpi::PhysicalPosition<f64>,
+    ) -> winit::dpi::PhysicalPosition<f64> {
+        let window = web_sys::window().unwrap();
+        let d = window.device_pixel_ratio();
+        pos.x /= d;
+        pos.y /= d;
+        pos
+    }
 }
 #[cfg(feature = "wasm")]
 use wasm_bindgen::JsCast;
@@ -220,6 +231,8 @@ impl winit::application::ApplicationHandler for App {
                 }
             }
             winit::event::WindowEvent::CursorMoved { position, .. } => {
+                #[cfg(feature = "wasm")]
+                let position = self.get_pos(position);
                 let bool = self.input_state.pointer.is_some()
                     || (self.input_state.pointer_right.is_some() && self.plot.is_drag())
                     || (!self.plot.is_3d
@@ -296,6 +309,8 @@ impl winit::application::ApplicationHandler for App {
                 id,
                 ..
             }) => {
+                #[cfg(feature = "wasm")]
+                let location = self.get_pos(location);
                 let Some(s) = self.window() else {
                     return;
                 };
