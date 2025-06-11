@@ -20,6 +20,11 @@ use std::io::Read;
 use std::io::Write;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
+#[cfg(feature = "wee")]
+extern crate wee_alloc;
+#[cfg(feature = "wee")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
 pub fn main() {
     //#[cfg(feature = "wasm")]
@@ -178,6 +183,8 @@ struct App {
     touch_positions: std::collections::HashMap<u64, rupl::types::Vec2>,
     #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
     last_touch_positions: std::collections::HashMap<u64, rupl::types::Vec2>,
+    #[cfg(feature = "wasm")]
+    dpr: f64,
 }
 
 #[cfg(feature = "egui")]

@@ -131,6 +131,8 @@ impl App {
             touch_positions: Default::default(),
             #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
             last_touch_positions: Default::default(),
+            #[cfg(feature = "wasm")]
+            dpr: 1.0,
         }
     }
     #[cfg(not(feature = "kalc-lib"))]
@@ -192,6 +194,8 @@ impl App {
             touch_positions: Default::default(),
             #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
             last_touch_positions: Default::default(),
+            #[cfg(feature = "wasm")]
+            dpr: 1.0,
         }
     }
     #[cfg(feature = "egui")]

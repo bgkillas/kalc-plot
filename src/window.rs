@@ -50,10 +50,8 @@ impl App {
         &self,
         mut pos: winit::dpi::PhysicalPosition<f64>,
     ) -> winit::dpi::PhysicalPosition<f64> {
-        let window = web_sys::window().unwrap();
-        let d = window.device_pixel_ratio();
-        pos.x /= d;
-        pos.y /= d;
+        pos.x /= self.dpr;
+        pos.y /= self.dpr;
         pos
     }
 }
@@ -81,6 +79,12 @@ impl winit::application::ApplicationHandler for App {
             #[cfg(feature = "wasm")]
             let window = window.with_canvas(Some(canvas));
             let window = event_loop.create_window(window);
+            #[cfg(feature = "wasm")]
+            {
+                let window = web_sys::window().unwrap();
+                let d = window.device_pixel_ratio();
+                self.dpr = d;
+            }
             window.unwrap()
         };
         #[cfg(not(target_arch = "wasm32"))]
