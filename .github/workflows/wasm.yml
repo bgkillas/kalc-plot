@@ -36,7 +36,9 @@ jobs:
       - name: fmt
         run: cargo fmt --check
       - name: lint
-        run: cargo clippy --no-default-features --features "tiny-skia,wasm,rayon" --target wasm32-unknown-unknown -- -D clippy::all
+        run: |
+         cargo clippy --no-default-features --features "tiny-skia,wasm" --target wasm32-unknown-unknown -- -D clippy::all
+         cargo clippy --no-default-features --features "wasm-draw" --target wasm32-unknown-unknown -- -D clippy::all
 
       - name: Build WASM app
         run: |
