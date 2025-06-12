@@ -56,34 +56,20 @@ impl App {
     }
 }
 #[cfg(feature = "wasm")]
-use wasm_bindgen::JsCast;
-#[cfg(feature = "wasm")]
-use web_sys::HtmlCanvasElement;
-#[cfg(feature = "wasm")]
 use winit::platform::web::WindowAttributesExtWebSys;
 #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
 impl winit::application::ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let window = {
-            #[cfg(feature = "wasm")]
-            let window = web_sys::window().expect("no global `window` exists");
-            #[cfg(feature = "wasm")]
-            let document = window.document().expect("should have a document");
-            #[cfg(feature = "wasm")]
-            let canvas = document
-                .get_element_by_id("canvas")
-                .expect("document should have canvas")
-                .dyn_into::<HtmlCanvasElement>()
-                .expect("element should be a canvas");
             let window = winit::window::Window::default_attributes();
             #[cfg(feature = "wasm")]
-            let window = window.with_canvas(Some(canvas));
+            let canvas = crate::get_canvas();
+            #[cfg(feature = "wasm")]
+            let window = window.with_canvas(Some(canvas.into()));
             let window = event_loop.create_window(window);
             #[cfg(feature = "wasm")]
             {
-                let window = web_sys::window().unwrap();
-                let d = window.device_pixel_ratio();
-                self.dpr = d;
+                self.dpr = crate::dpr();
             }
             window.unwrap()
         };
@@ -122,10 +108,7 @@ impl winit::application::ApplicationHandler for App {
                     };
                     #[cfg(feature = "wasm")]
                     {
-                        use winit::platform::web::WindowExtWebSys;
-                        let canvas: HtmlCanvasElement = state.canvas().unwrap();
-                        canvas.set_width(_d.width);
-                        canvas.set_height(_d.height);
+                        crate::resize(_d.width, _d.height);
                     }
                     state.request_redraw();
                     #[cfg(feature = "skia-vulkan")]

@@ -1856,7 +1856,6 @@ dependencies = [
  "serde",
  "softbuffer",
  "wasm-bindgen",
- "web-sys",
  "wee_alloc",
  "winit",
 ]
@@ -2880,13 +2879,13 @@ dependencies = [
  "bitcode",
  "bytemuck",
  "egui",
+ "js-sys",
  "rayon",
  "serde",
  "skia-safe",
  "tiny-skia",
  "vulkano",
  "wasm-bindgen",
- "web-sys",
  "winit",
  "zstd",
 ]

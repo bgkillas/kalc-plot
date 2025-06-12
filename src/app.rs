@@ -295,11 +295,7 @@ impl App {
             self.plot.update(width, height, &mut v);
         }
         let canvas = self.plot.canvas.as_ref().unwrap();
-        draw_buffer_web(
-            self.window.as_ref().unwrap(),
-            canvas.width(),
-            wasm_bindgen::Clamped(canvas.data()),
-        );
+        crate::draw(canvas.data(), canvas.width());
         if b {
             let name = self.name.clone();
             if let Some(w) = self.window() {
@@ -326,21 +322,7 @@ impl App {
             b = true;
             self.name = n;
         };
-        use wasm_bindgen::prelude::*;
-        use winit::platform::web::WindowExtWebSys;
-        let canvas: web_sys::HtmlCanvasElement = self
-            .window
-            .as_ref()
-            .unwrap()
-            .canvas()
-            .expect("Failed to get canvas");
-        let ctx: web_sys::CanvasRenderingContext2d = canvas
-            .get_context("2d")
-            .expect("Failed to get 2d context")
-            .expect("Failed to get 2d context")
-            .dyn_into()
-            .expect("Failed to convert to CanvasRenderingContext2d");
-        self.plot.update(width, height, ctx);
+        self.plot.update(width, height);
         if b {
             let name = self.name.clone();
             if let Some(w) = self.window() {
@@ -351,25 +333,5 @@ impl App {
                 }
             }
         }
-    }
-}
-#[cfg(all(feature = "wasm", feature = "tiny-skia"))]
-fn draw_buffer_web(win: &winit::window::Window, width: u32, clamped: wasm_bindgen::Clamped<&[u8]>) {
-    use wasm_bindgen::prelude::*;
-    let canvas = get_a_canvas(win);
-    let ctx: web_sys::CanvasRenderingContext2d = canvas
-        .get_context("2d")
-        .expect("Failed to get 2d context")
-        .expect("Failed to get 2d context")
-        .dyn_into()
-        .expect("Failed to convert to CanvasRenderingContext2d");
-    let image = web_sys::ImageData::new_with_u8_clamped_array(clamped, width)
-        .expect("Failed to create image data");
-    ctx.put_image_data(&image, 0.0, 0.0)
-        .expect("Failed to put image data");
-
-    fn get_a_canvas(win: &winit::window::Window) -> web_sys::HtmlCanvasElement {
-        use winit::platform::web::WindowExtWebSys;
-        win.canvas().expect("Failed to get canvas")
     }
 }

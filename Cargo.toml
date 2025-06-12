@@ -50,7 +50,7 @@ softbuffer-wayland=["softbuffer/wayland"]
 rug=["kalc-lib/rug","kalc-lib"]
 fastnum=["kalc-lib/fastnum","kalc-lib"]
 kalc-lib=["dep:kalc-lib"]
-wasm=["dep:wasm-bindgen", "dep:web-sys"]
+wasm=["dep:wasm-bindgen"]
 wasm-draw=["rupl/wasm", "wasm", "rupl/winit", "dep:winit"]
 wee=["dep:wee_alloc"]
 
@@ -67,5 +67,4 @@ rupl={version = "0.1.2",path="../rupl",default-features = false}
 kalc-lib={version="1.5.1",default-features=false,features = ["fastrand"],path="../kalc-lib",optional = true}
 wasm-bindgen = {version="0.2.100",optional = true}
 #console_error_panic_hook = { version = "0.1.7", optional = true }
-web-sys = { version = "0.3.77", features = ["CanvasRenderingContext2d", "HtmlCanvasElement"], optional = true }
 wee_alloc = {version = "0.4.5", optional = true}
