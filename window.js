@@ -1,5 +1,5 @@
 const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext("2d");
+const ctx = canvas.getContext("2d", {desynchronized: true, alpha: false});
 export function draw(slice, width) {
     const clamped = new Uint8ClampedArray(slice);
     const height = clamped.length / (width * 4);
