@@ -54,6 +54,23 @@ impl App {
         pos.y /= self.dpr;
         pos
     }
+    #[cfg(feature = "wasm")]
+    fn get_delta(
+        &self,
+        mut delta: winit::event::MouseScrollDelta,
+    ) -> winit::event::MouseScrollDelta {
+        match &mut delta {
+            winit::event::MouseScrollDelta::LineDelta(x, y) => {
+                *x /= self.dpr as f32;
+                *y /= self.dpr as f32;
+            }
+            winit::event::MouseScrollDelta::PixelDelta(p) => {
+                p.x /= self.dpr;
+                p.y /= self.dpr;
+            }
+        }
+        delta
+    }
 }
 #[cfg(feature = "wasm")]
 use winit::platform::web::WindowAttributesExtWebSys;
@@ -233,6 +250,8 @@ impl winit::application::ApplicationHandler for App {
                 self.input_state.pointer_pos = Some(rupl::types::Vec2::new(position.x, position.y));
             }
             winit::event::WindowEvent::MouseWheel { delta, .. } => {
+                #[cfg(feature = "wasm")]
+                let delta = self.get_delta(delta);
                 let Some(s) = self.window() else {
                     return;
                 };
