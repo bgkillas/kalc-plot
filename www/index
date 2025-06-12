@@ -4,10 +4,10 @@
     <link rel="modulepreload" href="pkg/kalc_plot.js">
     <link rel="modulepreload" href="pkg/snippets/@@KALC@@/window.js">
     <link rel="modulepreload" href="pkg/snippets/@@RUPL@@/painter.js">
-    <link rel="preload" href="favicon.ico" as="image">
     <link rel="preload" href="pkg/kalc_plot_bg.wasm" as="fetch" type="application/wasm" crossorigin>
     <meta charset="utf-8">
     <title>kalc plot</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
   <style>
     html, body, canvas {
       margin: 0;
