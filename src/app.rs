@@ -165,7 +165,7 @@ impl App {
             options.samples_3d.1,
             None,
         );
-        let names = &[];
+        let names = &[(Vec::new(), "sin(1/z)".to_string())];
         let names = get_names(&graph, names);
         let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);
         #[cfg(feature = "bincode")]
