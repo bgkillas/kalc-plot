@@ -25,15 +25,6 @@ extern crate wee_alloc;
 #[cfg(feature = "wee")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-#[cfg(feature = "wasm")]
-#[wasm_bindgen::prelude::wasm_bindgen(module = "/window.js")]
-extern "C" {
-    #[cfg(feature = "tiny-skia")]
-    pub fn draw(slice: &[u8], width: u32);
-    pub fn get_canvas() -> wasm_bindgen::JsValue;
-    pub fn resize(x: u32, y: u32);
-    pub fn dpr() -> f64;
-}
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
 pub fn main() {
     //#[cfg(feature = "wasm")]

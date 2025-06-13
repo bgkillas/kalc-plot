@@ -295,7 +295,7 @@ impl App {
             self.plot.update(width, height, &mut v);
         }
         let canvas = self.plot.canvas.as_ref().unwrap();
-        crate::draw(canvas.data(), canvas.width());
+        rupl::draw(canvas.data(), canvas.width());
         if b {
             let name = self.name.clone();
             if let Some(w) = self.window() {

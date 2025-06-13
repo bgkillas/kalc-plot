@@ -80,13 +80,13 @@ impl winit::application::ApplicationHandler for App {
         let window = {
             let window = winit::window::Window::default_attributes();
             #[cfg(feature = "wasm")]
-            let canvas = crate::get_canvas();
+            let canvas = rupl::get_canvas();
             #[cfg(feature = "wasm")]
             let window = window.with_canvas(Some(canvas.into()));
             let window = event_loop.create_window(window);
             #[cfg(feature = "wasm")]
             {
-                self.dpr = crate::dpr();
+                self.dpr = rupl::dpr();
             }
             window.unwrap()
         };
@@ -125,7 +125,7 @@ impl winit::application::ApplicationHandler for App {
                     };
                     #[cfg(feature = "wasm")]
                     {
-                        crate::resize(_d.width, _d.height);
+                        rupl::resize(_d.width, _d.height);
                     }
                     state.request_redraw();
                     #[cfg(feature = "skia-vulkan")]
