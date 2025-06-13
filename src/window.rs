@@ -61,12 +61,12 @@ impl App {
     ) -> winit::event::MouseScrollDelta {
         match &mut delta {
             winit::event::MouseScrollDelta::LineDelta(x, y) => {
-                *x /= self.dpr as f32 * 8.0;
-                *y /= self.dpr as f32 * 8.0;
+                *x /= self.dpr as f32;
+                *y /= self.dpr as f32;
             }
             winit::event::MouseScrollDelta::PixelDelta(p) => {
-                p.x /= self.dpr * 8.0;
-                p.y /= self.dpr * 8.0;
+                p.x /= self.dpr;
+                p.y /= self.dpr;
             }
         }
         delta
