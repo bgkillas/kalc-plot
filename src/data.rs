@@ -50,7 +50,7 @@ impl Type {
     }
     #[cfg(feature = "kalc-lib")]
     fn is_3d_i(&self) -> bool {
-        (self.how.x && self.how.y) || matches!(self.val, Val::Matrix(_))
+        (self.how.x && self.how.y) || matches!(self.val, Val::Matrix(Mat::D3(_)))
     }
     #[cfg(not(feature = "kalc-lib"))]
     fn is_3d_i(&self) -> bool {
