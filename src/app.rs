@@ -233,10 +233,8 @@ impl App {
             self.name = n;
         };
         self.plot.update();
-        if b {
-            if let Some(w) = &self.plot.renderer {
-                self.set_title(&w.window);
-            }
+        if b && let Some(w) = &self.plot.renderer {
+            self.set_title(&w.window);
         }
     }
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
