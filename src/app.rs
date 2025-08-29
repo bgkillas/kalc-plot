@@ -263,10 +263,8 @@ impl App {
             }
             buffer.present().unwrap();
         }
-        if b {
-            if let Some(w) = &self.surface_state {
-                self.set_title(w.window());
-            }
+        if b && let Some(w) = &self.surface_state {
+            self.set_title(w.window());
         }
     }
     #[cfg(any(feature = "skia", feature = "tiny-skia"))]
