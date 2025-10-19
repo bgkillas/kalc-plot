@@ -129,7 +129,7 @@ jobs:
         name: kalc-plot-macos-tiny-skia
         path: app
   build-egui-macos_x86_64:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
     - uses: actions/checkout@v4
     - name: depends
@@ -150,7 +150,7 @@ jobs:
         name: kalc-plot-macos-egui-x86_64
         path: app
   build-skia-macos_x86_64:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
     - uses: actions/checkout@v4
     - name: depends
@@ -171,7 +171,7 @@ jobs:
         name: kalc-plot-macos-skia-x86_64
         path: app
   build-tiny-skia-macos_x86_64:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
     - uses: actions/checkout@v4
     - name: depends
