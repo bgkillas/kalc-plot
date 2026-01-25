@@ -1,6 +1,8 @@
 #[cfg(not(feature = "rayon"))]
 use crate::IntoIter;
-use crate::{C, F, I, get_names};
+use crate::get_names;
+#[cfg(feature = "kalc-lib")]
+use crate::{C, F, I};
 #[cfg(feature = "kalc-lib")]
 use kalc_lib::complex::NumStr;
 #[cfg(feature = "kalc-lib")]
@@ -15,6 +17,7 @@ use kalc_lib::misc::{place_funcvar, place_var};
 use kalc_lib::options::silent_commands;
 #[cfg(feature = "kalc-lib")]
 use kalc_lib::parse::simplify;
+#[cfg(feature = "kalc-lib")]
 use kalc_lib::types::{Complex as Comp, Float, FloatShared};
 #[cfg(feature = "kalc-lib")]
 use kalc_lib::units::{Colors, HowGraphing, Number, Options, Variable};

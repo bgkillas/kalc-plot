@@ -1,7 +1,9 @@
 use crate::data::Data;
 #[cfg(feature = "kalc-lib")]
 use crate::data::init;
-use crate::{App, C, F, I, get_names};
+use crate::{App, get_names};
+#[cfg(feature = "kalc-lib")]
+use crate::{C, F, I};
 use rupl::types::Graph;
 impl App {
     #[cfg(feature = "kalc-lib")]

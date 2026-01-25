@@ -25,11 +25,17 @@ extern crate wee_alloc;
 #[cfg(feature = "wee")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+//#[cfg(feature = "kalc-lib")]
 //pub type I = kalc_lib::rug::Integer;
+//#[cfg(feature = "kalc-lib")]
 //pub type F = kalc_lib::rug::Float;
+//#[cfg(feature = "kalc-lib")]
 //pub type C = kalc_lib::rug::Complex;
+#[cfg(feature = "kalc-lib")]
 pub type I = kalc_lib::types::f64::Integer;
+#[cfg(feature = "kalc-lib")]
 pub type F = kalc_lib::types::f64::Float;
+#[cfg(feature = "kalc-lib")]
 pub type C = kalc_lib::types::f64::Complex;
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
 pub fn main() {
