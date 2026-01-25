@@ -25,6 +25,12 @@ extern crate wee_alloc;
 #[cfg(feature = "wee")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+//pub type I = kalc_lib::rug::Integer;
+//pub type F = kalc_lib::rug::Float;
+//pub type C = kalc_lib::rug::Complex;
+pub type I = kalc_lib::types::f64::Integer;
+pub type F = kalc_lib::types::f64::Float;
+pub type C = kalc_lib::types::f64::Complex;
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
 pub fn main() {
     #[cfg(feature = "wasm-console")]
@@ -46,7 +52,7 @@ pub fn main() {
             stdin.read_exact(len).unwrap();
             let mut data = Vec::with_capacity(usize::from_be_bytes(*len));
             stdin.read_to_end(&mut data).unwrap();
-            let mut data: kalc_lib::units::Data = bitcode::deserialize(&data).unwrap();
+            let mut data: kalc_lib::units::Data<I, F, C> = bitcode::deserialize(&data).unwrap();
             data.options.prec = data.options.graph_prec;
             data
         }
@@ -305,16 +311,16 @@ impl
     IntoIter<
         std::vec::IntoIter<(
             String,
-            Vec<NumStr>,
-            Vec<(String, Vec<NumStr>)>,
+            Vec<NumStr<I, F, C>>,
+            Vec<(String, Vec<NumStr<I, F, C>>)>,
             HowGraphing,
             bool,
         )>,
     >
     for Vec<(
         String,
-        Vec<NumStr>,
-        Vec<(String, Vec<NumStr>)>,
+        Vec<NumStr<I, F, C>>,
+        Vec<(String, Vec<NumStr<I, F, C>>)>,
         HowGraphing,
         bool,
     )>
@@ -323,8 +329,8 @@ impl
         self,
     ) -> std::vec::IntoIter<(
         String,
-        Vec<NumStr>,
-        Vec<(String, Vec<NumStr>)>,
+        Vec<NumStr<I, F, C>>,
+        Vec<(String, Vec<NumStr<I, F, C>>)>,
         HowGraphing,
         bool,
     )> {

@@ -1,11 +1,11 @@
 use crate::data::Data;
 #[cfg(feature = "kalc-lib")]
 use crate::data::init;
-use crate::{App, get_names};
+use crate::{App, C, F, I, get_names};
 use rupl::types::Graph;
 impl App {
     #[cfg(feature = "kalc-lib")]
-    pub(crate) fn new(function: String, data: kalc_lib::units::Data) -> Self {
+    pub(crate) fn new(function: String, data: kalc_lib::units::Data<I, F, C>) -> Self {
         #[cfg(feature = "bincode")]
         let mut function = function;
         #[cfg(feature = "bincode")]
@@ -121,6 +121,7 @@ impl App {
             #[cfg(feature = "bincode")]
             tiny,
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
+            #[cfg(not(feature = "wasm"))]
             #[cfg(not(feature = "skia-vulkan"))]
             surface_state: None,
             #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
@@ -133,6 +134,8 @@ impl App {
             last_touch_positions: Default::default(),
             #[cfg(feature = "wasm")]
             dpr: 1.0,
+            #[cfg(feature = "wasm")]
+            window: None,
         }
     }
     #[cfg(not(feature = "kalc-lib"))]

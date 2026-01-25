@@ -56,16 +56,16 @@ wee=["dep:wee_alloc"]
 wasm-console = ["dep:console_error_panic_hook"]
 
 [dependencies]
-egui={version= "0.33.0",default-features = false,optional=true}
-eframe={version= "0.33.0",optional=true}
+egui={version= "0.33.3",default-features = false,optional=true}
+eframe={version= "0.33.3",optional=true}
 winit={version="0.30.12", default-features=false, features = ["rwh_06"],optional=true}
-softbuffer={version="0.4.6",default-features = false,optional=true}
+softbuffer={version="0.4.8",default-features = false,optional=true}
 rayon={version="1.11.0", optional=true}
 dirs={version="6.0.0", optional=true}
-bitcode = {version="0.6.7",features = ["serde"],optional = true}
+bitcode = {version="0.6.9",features = ["serde"],optional = true}
 serde = {version = "1.0.228", features = ["derive"], optional = true}
 rupl={version = "0.1.2",path="../rupl",default-features = false}
-kalc-lib={version="1.5.1",default-features=false,features = ["fastrand"],path="../kalc-lib",optional = true}
-wasm-bindgen = {version="0.2.104",optional = true}
+kalc-lib={version="1.5.1",default-features=false,path="../kalc-lib",optional = true}
+wasm-bindgen = {version="0.2.108",optional = true}
 console_error_panic_hook = { version = "0.1.7", optional = true }
 wee_alloc = {version = "0.4.5", optional = true}

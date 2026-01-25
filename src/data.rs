@@ -1,6 +1,6 @@
 #[cfg(not(feature = "rayon"))]
 use crate::IntoIter;
-use crate::get_names;
+use crate::{C, F, I, get_names};
 #[cfg(feature = "kalc-lib")]
 use kalc_lib::complex::NumStr;
 #[cfg(feature = "kalc-lib")]
@@ -15,6 +15,7 @@ use kalc_lib::misc::{place_funcvar, place_var};
 use kalc_lib::options::silent_commands;
 #[cfg(feature = "kalc-lib")]
 use kalc_lib::parse::simplify;
+use kalc_lib::types::{Complex as Comp, Float, FloatShared};
 #[cfg(feature = "kalc-lib")]
 use kalc_lib::units::{Colors, HowGraphing, Number, Options, Variable};
 #[cfg(feature = "rayon")]
@@ -114,9 +115,10 @@ pub(crate) enum Val {
 #[derive(Clone, Debug)]
 pub(crate) struct Plot {
     #[cfg(feature = "kalc-lib")]
-    pub(crate) func: Vec<NumStr>,
+    pub(crate) func: Vec<NumStr<I, F, C>>,
     #[cfg(feature = "kalc-lib")]
-    pub(crate) funcvar: Vec<(String, Vec<NumStr>)>,
+    #[allow(clippy::type_complexity)]
+    pub(crate) funcvar: Vec<(String, Vec<NumStr<I, F, C>>)>,
     pub(crate) graph_type: Type,
 }
 
@@ -148,7 +150,7 @@ pub(crate) struct Data {
     pub(crate) data: Vec<Option<Plot>>,
     pub(crate) options: Options,
     #[cfg(feature = "kalc-lib")]
-    pub(crate) vars: Vec<Variable>,
+    pub(crate) vars: Vec<Variable<I, F, C>>,
     pub(crate) blacklist: Vec<usize>,
     pub(crate) var: rupl::types::Vec2,
     pub(crate) count_changed: bool,
@@ -1040,7 +1042,7 @@ impl Data {
 fn take_vars(
     function: &mut String,
     options: &mut Options,
-    vars: &mut Vec<Variable>,
+    vars: &mut Vec<Variable<I, F, C>>,
 ) -> Vec<String> {
     let mut s = function
         .split('#')
@@ -1078,7 +1080,7 @@ fn take_vars(
 pub(crate) fn init(
     function: &str,
     options: &mut Options,
-    mut vars: Vec<Variable>,
+    mut vars: Vec<Variable<I, F, C>>,
 ) -> Result<(Vec<Option<Plot>>, Vec<(Vec<String>, String)>, HowGraphing), &'static str> {
     let mut function = function.to_string();
     let mut split = vec![take_vars(&mut function, options, &mut vars)];
@@ -1154,8 +1156,8 @@ pub(crate) fn init(
             })
             .collect::<Vec<(
                 String,
-                Vec<NumStr>,
-                Vec<(String, Vec<NumStr>)>,
+                Vec<NumStr<I, F, C>>,
+                Vec<(String, Vec<NumStr<I, F, C>>)>,
                 HowGraphing,
                 bool,
             )>>()
@@ -1289,7 +1291,7 @@ pub(crate) fn init(
     Ok((a, v, how))
 }
 #[cfg(feature = "kalc-lib")]
-fn compact_constant(c: Number) -> Complex {
+fn compact_constant(c: Number<I, F, C>) -> Complex {
     match (
         c.real().is_zero() && c.real().is_finite(),
         c.imag().is_zero() && c.imag().is_finite(),
@@ -1385,7 +1387,8 @@ fn compact_coord3d(mut graph: Vec<(f64, f64, Complex)>) -> (Vec<(f64, f64, Compl
     (graph, complex)
 }
 #[cfg(feature = "kalc-lib")]
-fn is_list(func: &[NumStr], funcvar: &[(String, Vec<NumStr>)]) -> bool {
+#[allow(clippy::type_complexity)]
+fn is_list(func: &[NumStr<I, F, C>], funcvar: &[(String, Vec<NumStr<I, F, C>>)]) -> bool {
     func.iter().any(|c| match c {
         NumStr::Func(s)
             if matches!(

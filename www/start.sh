@@ -1,7 +1,7 @@
 set -e
 set -x
 export RUSTUP_TOOLCHAIN=nightly
-wasm-pack build --out-dir www/pkg --target web --release --no-default-features --features "wasm-draw"
+wasm-pack build --out-dir www/pkg --target web --release --no-default-features --features "wasm-draw,kalc-lib"
 ls -l pkg/kalc_plot_bg.wasm
 wasm-opt -O4 -all -o pkg/kalc_plot_bg.wasm pkg/kalc_plot_bg.wasm
 ls -l pkg/kalc_plot_bg.wasm
