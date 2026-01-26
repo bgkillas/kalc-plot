@@ -47,8 +47,23 @@ pub fn main() {
     if !args.is_empty() {
         args.remove(0);
     }
+    #[cfg(not(feature = "wasm"))]
     let s = String::new();
+    #[cfg(not(feature = "wasm"))]
     let function = args.last().unwrap_or(&s);
+    #[cfg(feature = "wasm")]
+    let function: &String = &{
+        let mut hash = web_sys::window().unwrap().location().hash().unwrap();
+        if hash.is_empty() {
+            String::new()
+        } else {
+            use base64::{Engine as _, engine::general_purpose::URL_SAFE};
+            hash.remove(0);
+            let comp = URL_SAFE.decode(hash).unwrap_or_default();
+            let bytes = lz4_flex::decompress_size_prepended(&comp).unwrap_or_default();
+            String::try_from(bytes).unwrap_or_default()
+        }
+    };
     #[cfg(feature = "kalc-lib")]
     let data = if args.len() > 1 && args[0] == "-d" && cfg!(feature = "bincode") {
         #[cfg(feature = "bincode")]

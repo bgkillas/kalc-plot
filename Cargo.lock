@@ -1806,6 +1806,7 @@ name = "kalc-lib"
 version = "1.5.1"
 dependencies = [
  "fastnum",
+ "fastrand",
  "gmp-mpfr-sys",
  "rayon",
  "rug",
@@ -1816,17 +1817,20 @@ dependencies = [
 name = "kalc-plot"
 version = "0.1.2"
 dependencies = [
+ "base64",
  "bitcode",
  "console_error_panic_hook",
  "dirs",
  "eframe",
  "egui",
  "kalc-lib",
+ "lz4_flex",
  "rayon",
  "rupl",
  "serde",
  "softbuffer",
  "wasm-bindgen",
+ "web-sys",
  "wee_alloc",
  "winit",
 ]
@@ -1919,6 +1923,12 @@ name = "log"
 version = "0.4.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
+
+[[package]]
+name = "lz4_flex"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab6473172471198271ff72e9379150e9dfd70d8e533e0752a27e515b48dd375e"
 
 [[package]]
 name = "malloc_buf"

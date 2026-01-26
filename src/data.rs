@@ -309,6 +309,18 @@ impl Data {
             i += 1;
         }
         let func = func.join("#").replace(";#", ";");
+        #[cfg(feature = "wasm")]
+        {
+            use base64::{Engine as _, engine::general_purpose::URL_SAFE};
+            let data = lz4_flex::compress_prepend_size(func.as_bytes());
+            let url = format!("#{}", URL_SAFE.encode(data));
+            web_sys::window()
+                .unwrap()
+                .history()
+                .unwrap()
+                .replace_state_with_url(&wasm_bindgen::JsValue::NULL, "", Some(&url))
+                .unwrap();
+        }
         let new_name;
         let old_len = self.data.len();
         (self.data, new_name, _) = init(&func, &mut self.options, self.vars.clone()).unwrap_or((
