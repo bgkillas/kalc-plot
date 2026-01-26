@@ -310,7 +310,7 @@ impl Data {
         }
         let func = func.join("#").replace(";#", ";");
         #[cfg(feature = "wasm")]
-        {
+        if !plot.is_drag() {
             use base64::{Engine as _, engine::general_purpose::URL_SAFE};
             let data = lz4_flex::compress_prepend_size(func.as_bytes());
             let url = format!("#{}", URL_SAFE.encode(data));
