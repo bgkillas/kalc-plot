@@ -37,6 +37,12 @@ pub type I = kalc_lib::types::f64::Integer<i128>;
 pub type F = kalc_lib::types::f64::Float<f64>;
 #[cfg(feature = "kalc-lib")]
 pub type C = kalc_lib::types::f64::Complex<f64>;
+#[cfg(feature = "wasm")]
+#[wasm_bindgen::prelude::wasm_bindgen(module = "/url.js")]
+extern "C" {
+    fn set_hash(s: &str);
+    fn get_hash() -> String;
+}
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
 pub fn main() {
     #[cfg(feature = "wasm-console")]
@@ -53,13 +59,12 @@ pub fn main() {
     let function = args.last().unwrap_or(&s);
     #[cfg(feature = "wasm")]
     let function: &String = &{
-        let mut hash = web_sys::window().unwrap().location().hash().unwrap();
+        let hash = get_hash();
         if hash.is_empty() {
             String::new()
         } else {
             use base64::{Engine as _, engine::general_purpose::URL_SAFE};
-            hash.remove(0);
-            let comp = URL_SAFE.decode(hash).unwrap_or_default();
+            let comp = URL_SAFE.decode(&hash[1..]).unwrap_or_default();
             let bytes = lz4_flex::decompress_size_prepended(&comp).unwrap_or_default();
             String::try_from(bytes).unwrap_or_default()
         }
