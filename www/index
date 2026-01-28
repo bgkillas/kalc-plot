@@ -3,6 +3,7 @@
 <head>
     <link rel="modulepreload" href="pkg/kalc_plot.js" as="script">
     <link rel="modulepreload" href="pkg/snippets/rupl-490477e6f525bea0/painter.js" as="script">
+    <link rel="modulepreload" href="pkg/snippets/kalc-plot-b220c5b0de72c3b6/url.js" as="script">
     <link rel="preload" href="pkg/kalc_plot_bg.wasm" as="fetch" type="application/wasm" crossorigin>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
