@@ -384,33 +384,29 @@ impl Data {
                 buffer.push(GraphType::None)
             }
         }
-        buffer
-            .into_par_iter()
-            .enumerate()
-            .map(|(mut i, b)| {
-                if let Some(n) = n {
-                    i = n;
-                }
-                if self.blacklist.contains(&i) {
-                    return false;
-                }
-                let Some(data) = &self.data[i] else {
-                    return false;
-                };
-                if !data.graph_type.is_3d_o() {
-                    return false;
-                }
-                match (data.graph_type.is_3d_i(), data.graph_type.on_var()) {
-                    (true, false) => self.get_3d(data, startx, starty, endx, endy, lenx, leny, b),
-                    (true, true) => self.get_3d(
-                        data, self.var.x, self.var.x, self.var.y, self.var.y, lenx, leny, b,
-                    ),
-                    (false, true) => self.get_2d(data, self.var.x, self.var.y, lenx * leny, b),
-                    (false, false) => None,
-                }
-                .unwrap_or(false)
-            })
-            .any(|b| b)
+        buffer.into_par_iter().enumerate().any(|(mut i, b)| {
+            if let Some(n) = n {
+                i = n;
+            }
+            if self.blacklist.contains(&i) {
+                return false;
+            }
+            let Some(data) = &self.data[i] else {
+                return false;
+            };
+            if !data.graph_type.is_3d_o() {
+                return false;
+            }
+            match (data.graph_type.is_3d_i(), data.graph_type.on_var()) {
+                (true, false) => self.get_3d(data, startx, starty, endx, endy, lenx, leny, b),
+                (true, true) => self.get_3d(
+                    data, self.var.x, self.var.x, self.var.y, self.var.y, lenx, leny, b,
+                ),
+                (false, true) => self.get_2d(data, self.var.x, self.var.y, lenx * leny, b),
+                (false, false) => None,
+            }
+            .unwrap_or(false)
+        })
     }
     #[allow(clippy::too_many_arguments)]
     pub fn get_3d(
@@ -695,139 +691,131 @@ impl Data {
         let xs = startx + (slice as f64 + lenx as f64 / 2.0) * dx;
         #[cfg(feature = "kalc-lib")]
         let x = NumStr::new(Number::from_f64(xs, &self.options));
-        buffer
-            .into_par_iter()
-            .enumerate()
-            .map(|(mut i, buf)| {
-                if let Some(n) = n {
-                    i = n;
-                }
-                if self.blacklist.contains(&i) {
-                    return false;
-                }
-                let Some(data) = &self.data[i] else {
-                    return false;
-                };
-                if let Val::Num(Some(c)) = data.graph_type.val {
-                    *buf = GraphType::Constant(c, data.graph_type.inv());
-                    matches!(c, Complex::Complex(_, _) | Complex::Imag(_))
-                } else {
-                    #[cfg(feature = "kalc-lib")]
-                    let mut modified = place_var(data.func.clone(), xstr, x.clone());
-                    #[cfg(feature = "kalc-lib")]
-                    let mut modifiedvars = place_funcvar(data.funcvar.clone(), xstr, x.clone());
-                    #[cfg(feature = "kalc-lib")]
-                    simplify(&mut modified, &mut modifiedvars, self.options);
-                    match &data.graph_type.val {
-                        Val::Num(_) => {
-                            let data = (0..=leny)
-                                .into_par_iter()
-                                .map(|i| {
-                                    let y = starty + i as f64 * dy;
-                                    #[cfg(feature = "kalc-lib")]
-                                    let y = NumStr::new(Number::from_f64(y, &self.options));
-                                    #[cfg(feature = "kalc-lib")]
-                                    if let Ok(Num(n)) = do_math(
-                                        place_var(modified.clone(), ystr, y.clone()),
-                                        self.options,
-                                        place_funcvar(modifiedvars.clone(), ystr, y),
-                                    ) {
-                                        Complex::Complex(
-                                            n.number.real().to_f64(),
-                                            n.number.imag().to_f64(),
-                                        )
-                                    } else {
-                                        Complex::Complex(f64::NAN, f64::NAN)
-                                    }
-                                    #[cfg(not(feature = "kalc-lib"))]
-                                    f3(xs, y)
-                                })
-                                .collect::<Vec<Complex>>();
-                            #[cfg(feature = "kalc-lib")]
-                            let (a, b) = compact(data);
-                            #[cfg(not(feature = "kalc-lib"))]
-                            let (a, b) = (data, is_complex());
-                            *buf = GraphType::Width3D(a, starx, stary, enx, eny);
-                            b
-                        }
-                        #[cfg(feature = "kalc-lib")]
-                        Val::Vector(_) => {
-                            *buf = GraphType::None;
-                            false
-                        }
-                        #[cfg(feature = "kalc-lib")]
-                        Val::Vector3D => {
-                            *buf = GraphType::None;
-                            false
-                        }
-                        #[cfg(feature = "kalc-lib")]
-                        Val::List => {
-                            let mut ndata: Vec<Vec<(f64, f64, Complex)>> =
-                                Vec::with_capacity(leny + 1);
-                            for i in 0..=leny {
-                                let xv = starty + i as f64 * dx;
-                                let x = NumStr::new(Number::from_f64(xv, &self.options));
-                                if let Ok(Vector(v)) = do_math(
-                                    place_var(modified.clone(), ystr, x.clone()),
+        buffer.into_par_iter().enumerate().any(|(mut i, buf)| {
+            if let Some(n) = n {
+                i = n;
+            }
+            if self.blacklist.contains(&i) {
+                return false;
+            }
+            let Some(data) = &self.data[i] else {
+                return false;
+            };
+            if let Val::Num(Some(c)) = data.graph_type.val {
+                *buf = GraphType::Constant(c, data.graph_type.inv());
+                matches!(c, Complex::Complex(_, _) | Complex::Imag(_))
+            } else {
+                #[cfg(feature = "kalc-lib")]
+                let mut modified = place_var(data.func.clone(), xstr, x.clone());
+                #[cfg(feature = "kalc-lib")]
+                let mut modifiedvars = place_funcvar(data.funcvar.clone(), xstr, x.clone());
+                #[cfg(feature = "kalc-lib")]
+                simplify(&mut modified, &mut modifiedvars, self.options);
+                match &data.graph_type.val {
+                    Val::Num(_) => {
+                        let data = (0..=leny)
+                            .into_par_iter()
+                            .map(|i| {
+                                let y = starty + i as f64 * dy;
+                                #[cfg(feature = "kalc-lib")]
+                                let y = NumStr::new(Number::from_f64(y, &self.options));
+                                #[cfg(feature = "kalc-lib")]
+                                if let Ok(Num(n)) = do_math(
+                                    place_var(modified.clone(), ystr, y.clone()),
                                     self.options,
-                                    place_funcvar(modifiedvars.clone(), ystr, x),
+                                    place_funcvar(modifiedvars.clone(), ystr, y),
                                 ) {
-                                    let mut v = v.into_iter();
-                                    ndata.extend(vec![
-                                        Vec::new();
-                                        v.len().saturating_sub(ndata.len())
-                                    ]);
-                                    for data in ndata.iter_mut() {
-                                        let n = v
-                                            .next()
-                                            .map(|n| {
-                                                (
-                                                    xs,
-                                                    xv,
-                                                    Complex::Complex(
-                                                        n.number.real().to_f64(),
-                                                        n.number.imag().to_f64(),
-                                                    ),
-                                                )
-                                            })
-                                            .unwrap_or((
-                                                f64::NAN,
-                                                f64::NAN,
-                                                Complex::Complex(f64::NAN, f64::NAN),
-                                            ));
-                                        data.push(n)
-                                    }
+                                    Complex::Complex(
+                                        n.number.real().to_f64(),
+                                        n.number.imag().to_f64(),
+                                    )
+                                } else {
+                                    Complex::Complex(f64::NAN, f64::NAN)
+                                }
+                                #[cfg(not(feature = "kalc-lib"))]
+                                f3(xs, y)
+                            })
+                            .collect::<Vec<Complex>>();
+                        #[cfg(feature = "kalc-lib")]
+                        let (a, b) = compact(data);
+                        #[cfg(not(feature = "kalc-lib"))]
+                        let (a, b) = (data, is_complex());
+                        *buf = GraphType::Width3D(a, starx, stary, enx, eny);
+                        b
+                    }
+                    #[cfg(feature = "kalc-lib")]
+                    Val::Vector(_) => {
+                        *buf = GraphType::None;
+                        false
+                    }
+                    #[cfg(feature = "kalc-lib")]
+                    Val::Vector3D => {
+                        *buf = GraphType::None;
+                        false
+                    }
+                    #[cfg(feature = "kalc-lib")]
+                    Val::List => {
+                        let mut ndata: Vec<Vec<(f64, f64, Complex)>> = Vec::with_capacity(leny + 1);
+                        for i in 0..=leny {
+                            let xv = starty + i as f64 * dx;
+                            let x = NumStr::new(Number::from_f64(xv, &self.options));
+                            if let Ok(Vector(v)) = do_math(
+                                place_var(modified.clone(), ystr, x.clone()),
+                                self.options,
+                                place_funcvar(modifiedvars.clone(), ystr, x),
+                            ) {
+                                let mut v = v.into_iter();
+                                ndata.extend(vec![Vec::new(); v.len().saturating_sub(ndata.len())]);
+                                for data in ndata.iter_mut() {
+                                    let n = v
+                                        .next()
+                                        .map(|n| {
+                                            (
+                                                xs,
+                                                xv,
+                                                Complex::Complex(
+                                                    n.number.real().to_f64(),
+                                                    n.number.imag().to_f64(),
+                                                ),
+                                            )
+                                        })
+                                        .unwrap_or((
+                                            f64::NAN,
+                                            f64::NAN,
+                                            Complex::Complex(f64::NAN, f64::NAN),
+                                        ));
+                                    data.push(n)
                                 }
                             }
-                            let mut b = false;
-                            *buf = GraphType::List(
-                                ndata
-                                    .into_iter()
-                                    .map(|data| {
-                                        let (a, c) = compact_coord3d(data);
-                                        b |= c;
-                                        GraphType::Coord3D(a)
-                                    })
-                                    .collect(),
-                            );
-                            b
                         }
-                        #[cfg(feature = "kalc-lib")]
-                        Val::Matrix(m) => {
-                            if let Mat::D2(m) = m {
-                                *buf = GraphType::Coord(
-                                    m.iter().map(|m| (m.x, Complex::Real(m.y))).collect(),
-                                );
-                                false
-                            } else {
-                                *buf = GraphType::None;
-                                false
-                            }
+                        let mut b = false;
+                        *buf = GraphType::List(
+                            ndata
+                                .into_iter()
+                                .map(|data| {
+                                    let (a, c) = compact_coord3d(data);
+                                    b |= c;
+                                    GraphType::Coord3D(a)
+                                })
+                                .collect(),
+                        );
+                        b
+                    }
+                    #[cfg(feature = "kalc-lib")]
+                    Val::Matrix(m) => {
+                        if let Mat::D2(m) = m {
+                            *buf = GraphType::Coord(
+                                m.iter().map(|m| (m.x, Complex::Real(m.y))).collect(),
+                            );
+                            false
+                        } else {
+                            *buf = GraphType::None;
+                            false
                         }
                     }
                 }
-            })
-            .any(|b| b)
+            }
+        })
     }
     pub(crate) fn generate_2d(
         &self,
@@ -843,37 +831,33 @@ impl Data {
                 buffer.push(GraphType::None)
             }
         }
-        buffer
-            .into_par_iter()
-            .enumerate()
-            .map(|(mut i, b)| {
-                if let Some(n) = n {
-                    i = n;
-                }
-                if self.blacklist.contains(&i) {
-                    return false;
-                }
-                let Some(data) = &self.data[i] else {
-                    return false;
-                };
-                match (data.graph_type.is_3d_i(), data.graph_type.on_var()) {
-                    (true, true) => self.get_3d(
-                        data,
-                        self.var.x,
-                        self.var.x,
-                        self.var.y,
-                        self.var.y,
-                        len.isqrt(),
-                        len.isqrt(),
-                        b,
-                    ),
-                    (false, true) => self.get_2d(data, self.var.x, self.var.y, len, b),
-                    (false, false) => self.get_2d(data, start, end, len, b),
-                    (true, false) => None,
-                }
-                .unwrap_or(false)
-            })
-            .any(|b| b)
+        buffer.into_par_iter().enumerate().any(|(mut i, b)| {
+            if let Some(n) = n {
+                i = n;
+            }
+            if self.blacklist.contains(&i) {
+                return false;
+            }
+            let Some(data) = &self.data[i] else {
+                return false;
+            };
+            match (data.graph_type.is_3d_i(), data.graph_type.on_var()) {
+                (true, true) => self.get_3d(
+                    data,
+                    self.var.x,
+                    self.var.x,
+                    self.var.y,
+                    self.var.y,
+                    len.isqrt(),
+                    len.isqrt(),
+                    b,
+                ),
+                (false, true) => self.get_2d(data, self.var.x, self.var.y, len, b),
+                (false, false) => self.get_2d(data, start, end, len, b),
+                (true, false) => None,
+            }
+            .unwrap_or(false)
+        })
     }
     pub(crate) fn get_2d(
         &self,

@@ -169,7 +169,8 @@ impl App {
             var: rupl::types::Vec2::new(options.xr.0, options.xr.1),
             count_changed: false,
         };
-        let (graph, complex) = data.generate_3d(
+        let mut graph = Vec::new();
+        let complex = data.generate_3d(
             options.xr.0,
             options.yr.0,
             options.xr.1,
@@ -177,6 +178,7 @@ impl App {
             options.samples_3d.0,
             options.samples_3d.1,
             None,
+            &mut graph,
         );
         let names = &[(Vec::new(), "sin(1/z)".to_string())];
         let names = get_names(&graph, names);
