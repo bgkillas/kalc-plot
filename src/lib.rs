@@ -326,6 +326,14 @@ impl_into_iter!(
     (std::ops::Range<usize>, std::ops::Range<usize>)
 );
 #[cfg(not(feature = "rayon"))]
+impl<'a> IntoIter<core::slice::IterMut<'a, rupl::types::GraphType>>
+    for &'a mut Vec<rupl::types::GraphType>
+{
+    fn into_par_iter(self) -> core::slice::IterMut<'a, rupl::types::GraphType> {
+        self.iter_mut()
+    }
+}
+#[cfg(not(feature = "rayon"))]
 impl<'a> IntoIter<std::vec::IntoIter<&'a str>> for Vec<&'a str> {
     fn into_par_iter(self) -> std::vec::IntoIter<&'a str> {
         self.into_iter()

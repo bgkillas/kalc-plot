@@ -46,7 +46,8 @@ impl App {
             var: rupl::types::Vec2::new(options.xr.0, options.xr.1),
             count_changed: false,
         };
-        let (graph, complex) = if graphing_mode.x && graphing_mode.y {
+        let mut graph = Vec::new();
+        let complex = if graphing_mode.x && graphing_mode.y {
             data.generate_3d(
                 options.xr.0,
                 options.yr.0,
@@ -55,9 +56,16 @@ impl App {
                 options.samples_3d.0,
                 options.samples_3d.1,
                 None,
+                &mut graph,
             )
         } else {
-            data.generate_2d(options.xr.0, options.xr.1, options.samples_2d, None)
+            data.generate_2d(
+                options.xr.0,
+                options.xr.1,
+                options.samples_2d,
+                None,
+                &mut graph,
+            )
         };
         let names = get_names(&graph, &names);
         if options.vxr.0 != 0.0 || options.vxr.1 != 0.0 {
