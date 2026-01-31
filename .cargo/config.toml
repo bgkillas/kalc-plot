@@ -1,3 +1,2 @@
 [unstable]
-build-std = ["std", "panic_abort"]
-rustflags = ["-Zunstable-options", "-Cpanic=immediate-abort"]
+build-std = ["std"]

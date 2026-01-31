@@ -8,7 +8,7 @@ use crate::data::Data;
 use kalc_lib::load_vars::get_vars;
 #[cfg(feature = "kalc-lib")]
 use kalc_lib::units::Options;
-use rupl::types::{Complex, Graph, GraphType, Name, Show};
+use rupl::types::{Complex, Graph, GraphData, Name, Show};
 #[cfg(feature = "bincode")]
 use serde::{Deserialize, Serialize};
 use std::env::args;
@@ -226,39 +226,39 @@ impl eframe::App for App {
     }
 }
 
-pub(crate) fn get_names(graph: &[GraphType], names: &[(Vec<String>, String)]) -> Vec<Name> {
-    fn ri(data: &GraphType) -> (bool, bool) {
+pub(crate) fn get_names(graph: &[GraphData], names: &[(Vec<String>, String)]) -> Vec<Name> {
+    fn ri(data: &GraphData) -> (bool, bool) {
         match data {
-            GraphType::Width(data, _, _) => (
+            GraphData::Width(data, _, _) => (
                 data.iter()
                     .any(|a| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
                 data.iter()
                     .any(|a| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
             ),
-            GraphType::Coord(data) => (
+            GraphData::Coord(data) => (
                 data.iter()
                     .any(|(_, a)| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
                 data.iter()
                     .any(|(_, a)| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
             ),
-            GraphType::Width3D(data, _, _, _, _) => (
+            GraphData::Width3D(data, _, _, _, _) => (
                 data.iter()
                     .any(|a| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
                 data.iter()
                     .any(|a| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
             ),
-            GraphType::Coord3D(data) => (
+            GraphData::Coord3D(data) => (
                 data.iter()
                     .any(|(_, _, a)| matches!(a, Complex::Real(_) | Complex::Complex(_, _))),
                 data.iter()
                     .any(|(_, _, a)| matches!(a, Complex::Imag(_) | Complex::Complex(_, _))),
             ),
-            GraphType::Constant(c, _) => (
+            GraphData::Constant(c, _) => (
                 matches!(c, Complex::Real(_) | Complex::Complex(_, _)),
                 matches!(c, Complex::Imag(_) | Complex::Complex(_, _)),
             ),
-            GraphType::Point(_) => (true, false),
-            GraphType::List(d) => {
+            GraphData::Point(_) => (true, false),
+            GraphData::List(d) => {
                 let (mut a, mut b) = (false, false);
                 for data in d {
                     let (c, d) = ri(data);
@@ -267,7 +267,7 @@ pub(crate) fn get_names(graph: &[GraphType], names: &[(Vec<String>, String)]) ->
                 }
                 (a, b)
             }
-            GraphType::None => (false, false),
+            GraphData::None => (false, false),
         }
     }
     let mut graph = graph.iter();
@@ -326,10 +326,10 @@ impl_into_iter!(
     (std::ops::Range<usize>, std::ops::Range<usize>)
 );
 #[cfg(not(feature = "rayon"))]
-impl<'a> IntoIter<core::slice::IterMut<'a, rupl::types::GraphType>>
-    for &'a mut Vec<rupl::types::GraphType>
+impl<'a> IntoIter<core::slice::IterMut<'a, rupl::types::GraphData>>
+    for &'a mut Vec<rupl::types::GraphData>
 {
-    fn into_par_iter(self) -> core::slice::IterMut<'a, rupl::types::GraphType> {
+    fn into_par_iter(self) -> core::slice::IterMut<'a, rupl::types::GraphData> {
         self.iter_mut()
     }
 }

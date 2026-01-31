@@ -1,3 +1,4 @@
+cargo-features = ["panic-immediate-abort"]
 [package]
 name = "kalc-plot"
 version = "0.1.2"
@@ -11,7 +12,7 @@ homepage = "https://github.com/bgkillas/kalc-plot"
 [profile.release]
 lto = true
 strip = true
-panic = "abort"
+panic = "immediate-abort"
 split-debuginfo = "packed"
 incremental=true
 codegen-units=1

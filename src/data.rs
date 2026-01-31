@@ -27,7 +27,7 @@ use rayon::iter::IndexedParallelIterator;
 use rayon::iter::IntoParallelIterator;
 #[cfg(feature = "rayon")]
 use rayon::iter::ParallelIterator;
-use rupl::types::{Bound, Complex, Graph, GraphType, Prec};
+use rupl::types::{Bound, Complex, Graph, GraphData, Prec};
 #[cfg(feature = "bincode")]
 use serde::{Deserialize, Serialize};
 #[cfg(not(feature = "kalc-lib"))]
@@ -202,7 +202,7 @@ impl Data {
             })
             .next();
         let apply_names =
-            |data: &[GraphType], complex: bool, plot: &mut Graph, k: Option<usize>| {
+            |data: &[GraphData], complex: bool, plot: &mut Graph, k: Option<usize>| {
                 if let Some(names) = names {
                     let names = get_names(data, names);
                     if let Some(k) = k {
@@ -376,12 +376,12 @@ impl Data {
         lenx: usize,
         leny: usize,
         n: Option<usize>,
-        buffer: &mut Vec<GraphType>,
+        buffer: &mut Vec<GraphData>,
     ) -> bool {
         let len = if n.is_some() { 1 } else { self.data.len() };
         if len > buffer.len() {
             for _ in 0..len - buffer.len() {
-                buffer.push(GraphType::None)
+                buffer.push(GraphData::None)
             }
         }
         buffer.into_par_iter().enumerate().any(|(mut i, b)| {
@@ -418,16 +418,22 @@ impl Data {
         endy: f64,
         lenx: usize,
         leny: usize,
-        buffer: &mut GraphType,
+        buffer: &mut GraphData,
     ) -> Option<bool> {
         let dx = (endx - startx) / lenx as f64;
         let dy = (endy - starty) / leny as f64;
         Some(match &data.graph_type.val {
             Val::Num(n) => {
                 if let Some(c) = n {
-                    *buffer = GraphType::Constant(*c, data.graph_type.inv());
+                    *buffer = GraphData::Constant(*c, data.graph_type.inv());
                     matches!(c, Complex::Complex(_, _) | Complex::Imag(_))
                 } else {
+                    /*TODO
+                    buffer.set_type(GraphType::Width3D, (leny+1)*(lenx+1));
+                    let GraphData::Width3D(v, sx,sy,ex,ey) = buffer else {
+                        unreachable!()
+                    };
+                    */
                     let data = (0..=leny)
                         .into_par_iter()
                         .flat_map(|j| {
@@ -469,14 +475,14 @@ impl Data {
                     let (a, b) = compact(data);
                     #[cfg(not(feature = "kalc-lib"))]
                     let (a, b) = (data, is_complex());
-                    *buffer = GraphType::Width3D(a, startx, starty, endx, endy);
+                    *buffer = GraphData::Width3D(a, startx, starty, endx, endy);
                     b
                 }
             }
             #[cfg(feature = "kalc-lib")]
             Val::Vector(v) => {
                 if let Some(v) = v {
-                    *buffer = GraphType::Point(*v);
+                    *buffer = GraphData::Point(*v);
                     false
                 } else {
                     let data = (0..=leny)
@@ -517,7 +523,7 @@ impl Data {
                         })
                         .collect::<Vec<(f64, Complex)>>();
                     let (a, b) = compact_coord(data);
-                    *buffer = GraphType::Coord(a);
+                    *buffer = GraphData::Coord(a);
                     b
                 }
             }
@@ -562,7 +568,7 @@ impl Data {
                     })
                     .collect::<Vec<(f64, f64, Complex)>>();
                 let (a, b) = compact_coord3d(data);
-                *buffer = GraphType::Coord3D(a);
+                *buffer = GraphData::Coord3D(a);
                 b
             }
             #[cfg(feature = "kalc-lib")]
@@ -609,13 +615,13 @@ impl Data {
                     }
                 }
                 let mut b = false;
-                *buffer = GraphType::List(
+                *buffer = GraphData::List(
                     ndata
                         .into_iter()
                         .map(|data| {
                             let (a, c) = compact_coord3d(data);
                             b |= c;
-                            GraphType::Coord3D(a)
+                            GraphData::Coord3D(a)
                         })
                         .collect(),
                 );
@@ -624,7 +630,7 @@ impl Data {
             #[cfg(feature = "kalc-lib")]
             Val::Matrix(m) => {
                 if let Mat::D3(m) = m {
-                    *buffer = GraphType::Coord3D(
+                    *buffer = GraphData::Coord3D(
                         m.iter().map(|m| (m.x, m.y, Complex::Real(m.z))).collect(),
                     );
                     false
@@ -646,12 +652,12 @@ impl Data {
         slice: isize,
         view_x: bool,
         n: Option<usize>,
-        buffer: &mut Vec<GraphType>,
+        buffer: &mut Vec<GraphData>,
     ) -> bool {
         let len = if n.is_some() { 1 } else { self.data.len() };
         if len > buffer.len() {
             for _ in 0..len - buffer.len() {
-                buffer.push(GraphType::None)
+                buffer.push(GraphData::None)
             }
         }
         self.get_2d_slice(
@@ -670,7 +676,7 @@ impl Data {
         mut leny: usize,
         view_x: bool,
         n: Option<usize>,
-        buffer: &mut Vec<GraphType>,
+        buffer: &mut Vec<GraphData>,
     ) -> bool {
         #[cfg(feature = "kalc-lib")]
         let (xstr, ystr, startx, starty, endx, endy) = if view_x {
@@ -702,7 +708,7 @@ impl Data {
                 return false;
             };
             if let Val::Num(Some(c)) = data.graph_type.val {
-                *buf = GraphType::Constant(c, data.graph_type.inv());
+                *buf = GraphData::Constant(c, data.graph_type.inv());
                 matches!(c, Complex::Complex(_, _) | Complex::Imag(_))
             } else {
                 #[cfg(feature = "kalc-lib")]
@@ -740,17 +746,17 @@ impl Data {
                         let (a, b) = compact(data);
                         #[cfg(not(feature = "kalc-lib"))]
                         let (a, b) = (data, is_complex());
-                        *buf = GraphType::Width3D(a, starx, stary, enx, eny);
+                        *buf = GraphData::Width3D(a, starx, stary, enx, eny);
                         b
                     }
                     #[cfg(feature = "kalc-lib")]
                     Val::Vector(_) => {
-                        *buf = GraphType::None;
+                        *buf = GraphData::None;
                         false
                     }
                     #[cfg(feature = "kalc-lib")]
                     Val::Vector3D => {
-                        *buf = GraphType::None;
+                        *buf = GraphData::None;
                         false
                     }
                     #[cfg(feature = "kalc-lib")]
@@ -789,13 +795,13 @@ impl Data {
                             }
                         }
                         let mut b = false;
-                        *buf = GraphType::List(
+                        *buf = GraphData::List(
                             ndata
                                 .into_iter()
                                 .map(|data| {
                                     let (a, c) = compact_coord3d(data);
                                     b |= c;
-                                    GraphType::Coord3D(a)
+                                    GraphData::Coord3D(a)
                                 })
                                 .collect(),
                         );
@@ -804,12 +810,12 @@ impl Data {
                     #[cfg(feature = "kalc-lib")]
                     Val::Matrix(m) => {
                         if let Mat::D2(m) = m {
-                            *buf = GraphType::Coord(
+                            *buf = GraphData::Coord(
                                 m.iter().map(|m| (m.x, Complex::Real(m.y))).collect(),
                             );
                             false
                         } else {
-                            *buf = GraphType::None;
+                            *buf = GraphData::None;
                             false
                         }
                     }
@@ -823,12 +829,12 @@ impl Data {
         end: f64,
         len: usize,
         n: Option<usize>,
-        buffer: &mut Vec<GraphType>,
+        buffer: &mut Vec<GraphData>,
     ) -> bool {
         let l = if n.is_some() { 1 } else { self.data.len() };
         if l > buffer.len() {
             for _ in 0..l - buffer.len() {
-                buffer.push(GraphType::None)
+                buffer.push(GraphData::None)
             }
         }
         buffer.into_par_iter().enumerate().any(|(mut i, b)| {
@@ -865,13 +871,13 @@ impl Data {
         start: f64,
         end: f64,
         len: usize,
-        buffer: &mut GraphType,
+        buffer: &mut GraphData,
     ) -> Option<bool> {
         let dx = (end - start) / len as f64;
         Some(match &data.graph_type.val {
             Val::Num(n) => {
                 if let Some(c) = n {
-                    *buffer = GraphType::Constant(*c, data.graph_type.inv());
+                    *buffer = GraphData::Constant(*c, data.graph_type.inv());
                     matches!(c, Complex::Complex(_, _) | Complex::Imag(_))
                 } else if data.graph_type.inv() {
                     let data = (0..=len)
@@ -898,7 +904,7 @@ impl Data {
                     let (a, b) = compact_coord(data);
                     #[cfg(not(feature = "kalc-lib"))]
                     let (a, b) = (data, is_complex());
-                    *buffer = GraphType::Coord(a);
+                    *buffer = GraphData::Coord(a);
                     b
                 } else {
                     let data = (0..=len)
@@ -925,14 +931,14 @@ impl Data {
                     let (a, b) = compact(data);
                     #[cfg(not(feature = "kalc-lib"))]
                     let (a, b) = (data, is_complex());
-                    *buffer = GraphType::Width(a, start, end);
+                    *buffer = GraphData::Width(a, start, end);
                     b
                 }
             }
             #[cfg(feature = "kalc-lib")]
             Val::Vector(v) => {
                 if let Some(v) = v {
-                    *buffer = GraphType::Point(*v);
+                    *buffer = GraphData::Point(*v);
                     false
                 } else {
                     let data = (0..=len)
@@ -962,7 +968,7 @@ impl Data {
                         })
                         .collect::<Vec<(f64, Complex)>>();
                     let (a, b) = compact_coord(data);
-                    *buffer = GraphType::Coord(a);
+                    *buffer = GraphData::Coord(a);
                     b
                 }
             }
@@ -996,7 +1002,7 @@ impl Data {
                     })
                     .collect::<Vec<(f64, f64, Complex)>>();
                 let (a, b) = compact_coord3d(data);
-                *buffer = GraphType::Coord3D(a);
+                *buffer = GraphData::Coord3D(a);
                 b
             }
             #[cfg(feature = "kalc-lib")]
@@ -1022,7 +1028,7 @@ impl Data {
                             }
                         }
                     }
-                    *buffer = GraphType::List(ndata.into_iter().map(GraphType::Coord).collect());
+                    *buffer = GraphData::List(ndata.into_iter().map(GraphData::Coord).collect());
                     false
                 } else {
                     let mut ndata: Vec<Vec<(f64, Complex)>> = Vec::new();
@@ -1054,13 +1060,13 @@ impl Data {
                         }
                     }
                     let mut b = false;
-                    *buffer = GraphType::List(
+                    *buffer = GraphData::List(
                         ndata
                             .into_iter()
                             .map(|data| {
                                 let (a, c) = compact_coord(data);
                                 b |= c;
-                                GraphType::Coord(a)
+                                GraphData::Coord(a)
                             })
                             .collect(),
                     );
@@ -1071,7 +1077,7 @@ impl Data {
             Val::Matrix(m) => {
                 if let Mat::D2(m) = m {
                     *buffer =
-                        GraphType::Coord(m.iter().map(|m| (m.x, Complex::Real(m.y))).collect());
+                        GraphData::Coord(m.iter().map(|m| (m.x, Complex::Real(m.y))).collect());
                     false
                 } else {
                     return None;
