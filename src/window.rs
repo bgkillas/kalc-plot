@@ -202,14 +202,12 @@ impl winit::application::ApplicationHandler for App {
                 self.plot.close();
                 event_loop.exit();
             }
-            winit::event::WindowEvent::KeyboardInput { event, .. } => {
-                if event.state.is_pressed() {
-                    let Some(state) = self.window() else {
-                        return;
-                    };
-                    state.request_redraw();
-                    self.input_state.keys_pressed.push(event.logical_key.into());
-                }
+            winit::event::WindowEvent::KeyboardInput { event, .. } if event.state.is_pressed() => {
+                let Some(state) = self.window() else {
+                    return;
+                };
+                state.request_redraw();
+                self.input_state.keys_pressed.push(event.logical_key.into());
             }
             winit::event::WindowEvent::MouseInput { state, button, .. } => match button {
                 winit::event::MouseButton::Left => {
@@ -228,11 +226,12 @@ impl winit::application::ApplicationHandler for App {
                 }
                 _ => {}
             },
-            winit::event::WindowEvent::CursorEntered { .. } => {
-                if self.input_state.pointer.is_none() && self.input_state.pointer_right.is_none() {
-                    self.input_state.pointer = None;
-                    self.input_state.pointer_right = None;
-                }
+            winit::event::WindowEvent::CursorEntered { .. }
+                if self.input_state.pointer.is_none()
+                    && self.input_state.pointer_right.is_none() =>
+            {
+                self.input_state.pointer = None;
+                self.input_state.pointer_right = None;
             }
             winit::event::WindowEvent::CursorMoved { position, .. } => {
                 #[cfg(feature = "wasm")]

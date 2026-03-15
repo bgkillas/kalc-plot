@@ -148,26 +148,17 @@ impl App {
             window: None,
         }
     }
-    #[cfg(not(feature = "kalc-lib"))]
-    pub(crate) fn new(_function: String) -> Self {
+    #[cfg(feature = "ucalc")]
+    pub(crate) fn new(function: String) -> Self {
         let options = crate::data::Options::default();
         let mut data = Data {
-            data: vec![Some(crate::data::Plot {
-                graph_type: crate::data::Type {
-                    val: crate::data::Val::Num(None),
-                    how: crate::data::HowGraphing {
-                        graph: true,
-                        x: true,
-                        y: true,
-                        w: false,
-                    },
-                    inv: None,
-                },
-            })],
+            data: Vec::new(),
             blacklist: Vec::new(),
             options,
+            vars: Default::default(),
             var: rupl::types::Vec2::new(options.xr.0, options.xr.1),
             count_changed: false,
+            funs: Default::default(),
         };
         let mut graph = Vec::new();
         let complex = data.generate_3d(
@@ -180,8 +171,7 @@ impl App {
             None,
             &mut graph,
         );
-        let names = &[(Vec::new(), "sin(1/z)".to_string())];
-        let names = get_names(&graph, names);
+        let names = get_names(&graph, &[(Vec::new(), String::new())]);
         let mut plot = Graph::new(graph, names, complex, options.xr.0, options.xr.1);
         #[cfg(feature = "bincode")]
         {
@@ -200,11 +190,12 @@ impl App {
             window: None,
             #[cfg(any(feature = "skia", feature = "tiny-skia"))]
             #[cfg(not(feature = "wasm"))]
+            #[cfg(not(feature = "skia-vulkan"))]
             surface_state: None,
             #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
             input_state: rupl::types::InputState::default(),
             #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
-            name: _function,
+            name: function,
             #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]
             touch_positions: Default::default(),
             #[cfg(any(feature = "skia", feature = "tiny-skia", feature = "wasm-draw"))]

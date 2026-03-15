@@ -30,6 +30,10 @@ use rayon::iter::ParallelIterator;
 use rupl::types::{Bound, Complex, Graph, GraphData, Prec};
 #[cfg(feature = "bincode")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "ucalc")]
+use ucalc_lib::Number;
+#[cfg(feature = "ucalc")]
+use ucalc_lib::{Functions, Tokens, Variables};
 #[cfg(not(feature = "kalc-lib"))]
 #[derive(Default, Copy, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "bincode", derive(Serialize, Deserialize))]
@@ -124,6 +128,8 @@ pub(crate) struct Plot {
     #[cfg(feature = "kalc-lib")]
     #[allow(clippy::type_complexity)]
     pub(crate) funcvar: Vec<(String, Vec<NumStr<I, F, C>>)>,
+    #[cfg(feature = "ucalc")]
+    pub(crate) tokens: Tokens,
     pub(crate) graph_type: Type,
 }
 
@@ -156,21 +162,18 @@ pub(crate) struct Data {
     pub(crate) options: Options,
     #[cfg(feature = "kalc-lib")]
     pub(crate) vars: Vec<Variable<I, F, C>>,
+    #[cfg(feature = "ucalc")]
+    pub(crate) vars: Variables,
+    #[cfg(feature = "ucalc")]
+    pub(crate) funs: Functions,
     pub(crate) blacklist: Vec<usize>,
     pub(crate) var: rupl::types::Vec2,
     pub(crate) count_changed: bool,
 }
 impl Data {
     pub(crate) fn update(&mut self, plot: &mut Graph) -> Option<String> {
-        #[cfg(feature = "kalc-lib")]
         let mut names = None;
-        #[cfg(feature = "kalc-lib")]
         let mut ret = None;
-        #[cfg(not(feature = "kalc-lib"))]
-        let names = None;
-        #[cfg(not(feature = "kalc-lib"))]
-        let ret = None;
-        #[cfg(feature = "kalc-lib")]
         if plot.is_name_modified() {
             self.update_name(plot, &mut names, &mut ret);
         }
@@ -304,6 +307,38 @@ impl Data {
                 }
             }
             Bound::Width(_, _, _) => unreachable!(),
+        }
+    }
+    #[cfg(feature = "ucalc")]
+    pub(crate) fn update_name(
+        &mut self,
+        plot: &mut Graph,
+        _names: &mut Option<Vec<(Vec<String>, String)>>,
+        _ret: &mut Option<String>,
+    ) {
+        if !self.data.is_empty() {
+            self.data.pop();
+        }
+        if let Some(n) = plot.names.first() {
+            let item = Tokens::infix(
+                n.name.as_str(),
+                &mut self.vars,
+                &mut self.funs,
+                &["x"],
+                false,
+                10,
+            )
+            .ok()
+            .flatten()
+            .map(|a| Plot {
+                tokens: a,
+                graph_type: Type {
+                    val: Val::Num(None),
+                    how: Default::default(),
+                    inv: None,
+                },
+            });
+            self.data.push(item);
         }
     }
     #[cfg(feature = "kalc-lib")]
@@ -446,7 +481,7 @@ impl Data {
                             let mut modifiedvars = place_funcvar(data.funcvar.clone(), "y", y);
                             #[cfg(feature = "kalc-lib")]
                             simplify(&mut modified, &mut modifiedvars, self.options);
-                            let mut data = Vec::with_capacity(lenx + 1);
+                            let mut vec = Vec::with_capacity(lenx + 1);
                             for i in 0..=lenx {
                                 let x = startx + i as f64 * dx;
                                 #[cfg(feature = "kalc-lib")]
@@ -466,9 +501,9 @@ impl Data {
                                 };
                                 #[cfg(not(feature = "kalc-lib"))]
                                 let v = f3(x, y);
-                                data.push(v)
+                                vec.push(v)
                             }
-                            data
+                            vec
                         })
                         .collect::<Vec<Complex>>();
                     #[cfg(feature = "kalc-lib")]
@@ -924,7 +959,11 @@ impl Data {
                                 Complex::Complex(f64::NAN, f64::NAN)
                             }
                             #[cfg(not(feature = "kalc-lib"))]
-                            f(x)
+                            let c = data
+                                .tokens
+                                .compute(&[Number::from(x)], &self.funs, &self.vars);
+                            #[cfg(not(feature = "kalc-lib"))]
+                            Complex::Complex(c.real.0, c.imag.0)
                         })
                         .collect::<Vec<Complex>>();
                     #[cfg(feature = "kalc-lib")]
@@ -1333,7 +1372,7 @@ pub(crate) fn init(
     for _ in split.len()..b.len() {
         split.push(Vec::new());
     }
-    for (b, a) in b.iter().zip(split.into_iter()) {
+    for (b, a) in b.iter().zip(split) {
         v.push((a, b.to_string()));
     }
     Ok((a, v, how))

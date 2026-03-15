@@ -29,6 +29,7 @@ wasm-opt = false
 
 [features]
 default=["skia-vulkan", "rug","fastnum", "vulkano-x11","x11", "wayland", "rayon", "bincode", "arboard"]
+#default=["skia-vulkan", "ucalc", "vulkano-x11", "x11", "wayland", "rayon", "arboard"]
 #default=["egui","rug","fastnum","rayon", "bincode", "arboard"]
 #default=["skia-vulkan","rug","fastnum","wayland", "rayon", "bincode", "arboard"]
 #default=["skia","rug","fastnum","wayland","softbuffer","softbuffer-wayland", "rayon", "bincode", "arboard"]
@@ -51,6 +52,7 @@ softbuffer-wayland=["softbuffer/wayland"]
 rug=["kalc-lib/rug","kalc-lib"]
 fastnum=["kalc-lib/fastnum","kalc-lib"]
 kalc-lib=["dep:kalc-lib"]
+ucalc=["dep:ucalc_lib"]
 wasm=["dep:wasm-bindgen", "rupl/wasm", "dep:lz4_flex", "dep:base64"]
 wasm-draw=["rupl/wasm-draw", "wasm", "rupl/winit", "dep:winit"]
 wee=["dep:wee_alloc"]
@@ -67,6 +69,7 @@ bitcode = {version="0.6.9",features = ["serde"],optional = true}
 serde = {version = "1.0.228", features = ["derive"], optional = true}
 rupl={version = "0.1.2",path="../rupl",default-features = false}
 kalc-lib={version="1.5.1",default-features=false,path="../kalc-lib",optional = true, features = ["fastrand"]}
+ucalc_lib = {version="0.0.2", path = "../ucalc/ucalc_lib", default-features = false, features=["f64", "complex"], optional = true}
 wasm-bindgen = {version="0.2.108",optional = true}
 console_error_panic_hook = { version = "0.1.7", optional = true }
 wee_alloc = {version = "0.4.5", optional = true}
