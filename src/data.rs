@@ -316,10 +316,8 @@ impl Data {
         _names: &mut Option<Vec<(Vec<String>, String)>>,
         _ret: &mut Option<String>,
     ) {
-        if !self.data.is_empty() {
-            self.data.pop();
-        }
-        if let Some(n) = plot.names.first() {
+        self.data.clear();
+        for n in &plot.names {
             let item = Tokens::infix(
                 n.name.as_str(),
                 &mut self.vars,
