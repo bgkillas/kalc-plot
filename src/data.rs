@@ -324,12 +324,12 @@ impl Data {
                 &mut self.funs,
                 &["x"],
                 false,
+                true,
                 10,
             )
             .ok()
-            .flatten()
             .map(|a| Plot {
-                tokens: a,
+                tokens: a.tokens(),
                 graph_type: Type {
                     val: Val::Num(None),
                     how: Default::default(),
